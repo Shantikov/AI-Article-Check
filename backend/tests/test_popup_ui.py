@@ -12,7 +12,7 @@ def test_product_name_is_consistent_in_extension_ui() -> None:
     html = (ROOT / "extension" / "popup.html").read_text(encoding="utf-8")
 
     assert manifest["name"] == "AI Article Check"
-    assert manifest["version"] == "0.9.0"
+    assert manifest["version"] == "0.9.1"
     assert manifest["action"]["default_title"] == "AI Article Check"
     assert "<title>AI Article Check</title>" in html
     assert "<h1>AI Article Check</h1>" in html
@@ -52,3 +52,15 @@ def test_auto_check_setting_is_saved_without_main_form_submission() -> None:
     assert "prepareAnalysisDetails" in script
     assert 'appendEvidenceSection("Evidence for AI"' in script
     assert 'appendEvidenceSection("Evidence against AI"' in script
+
+
+def test_google_results_are_rendered_as_each_check_finishes() -> None:
+    content_script = (ROOT / "extension" / "content.js").read_text(encoding="utf-8")
+    background_script = (ROOT / "extension" / "background.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert "await Promise.all(pending.map(analyzeSearchTarget));" in content_script
+    assert 'urls: [target.url]' in content_script
+    assert "let cacheMutationQueue = Promise.resolve();" in background_script
+    assert "function mutateCache(mutator)" in background_script

@@ -6,6 +6,7 @@ const DEFAULT_SETTINGS = Object.freeze({
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_CACHE_ITEMS = 200;
+let cacheMutationQueue = Promise.resolve();
 
 chrome.runtime.onInstalled.addListener(async () => {
   const stored = await chrome.storage.sync.get({
@@ -129,18 +130,25 @@ async function analyzeUrls(inputUrls, force = false) {
   const now = Date.now();
   const resultsByUrl = new Map();
   const missing = [];
+  const forcedKeys = [];
 
   for (const url of urls) {
     const key = cacheKey(url);
     const item = cache[key];
     if (force) {
-      delete cache[key];
+      forcedKeys.push(key);
       missing.push(url);
     } else if (item && item.expiresAt > now) {
       resultsByUrl.set(url, { ...item.result, cache_hit: true });
     } else {
       missing.push(url);
     }
+  }
+
+  if (forcedKeys.length) {
+    await mutateCache((latestCache) => {
+      for (const key of forcedKeys) delete latestCache[key];
+    }).catch(() => {});
   }
 
   if (missing.length) {
@@ -154,13 +162,25 @@ async function analyzeUrls(inputUrls, force = false) {
       });
       await requireSuccessfulResponse(response);
       const payload = await response.json();
+      const cacheableResults = [];
       for (const result of payload.results || []) {
         resultsByUrl.set(result.url, result);
         if (result.status === "ok") {
-          storeCachedResult(cache, result, [result.url, result.final_url], now);
+          cacheableResults.push(result);
         }
       }
-      await saveCache(cache);
+      if (cacheableResults.length) {
+        await mutateCache((latestCache) => {
+          for (const result of cacheableResults) {
+            storeCachedResult(
+              latestCache,
+              result,
+              [result.url, result.final_url],
+              now,
+            );
+          }
+        }).catch(() => {});
+      }
     } catch (error) {
       for (const url of missing) {
         resultsByUrl.set(url, {
@@ -385,6 +405,16 @@ async function saveCache(cache) {
     .sort((a, b) => b[1].expiresAt - a[1].expiresAt)
     .slice(0, MAX_CACHE_ITEMS);
   await chrome.storage.local.set({ analysisCache: Object.fromEntries(entries) });
+}
+
+function mutateCache(mutator) {
+  const operation = cacheMutationQueue.then(async () => {
+    const cache = await loadCache();
+    mutator(cache);
+    await saveCache(cache);
+  });
+  cacheMutationQueue = operation.catch(() => {});
+  return operation;
 }
 
 function readableError(error) {

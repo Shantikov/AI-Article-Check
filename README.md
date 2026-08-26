@@ -14,6 +14,8 @@ runs an English AI-text classifier locally on the backend computer.
 ## Features
 
 - checks the first 6 results automatically on the first search page by default;
+- fetches those pages concurrently and displays each result as soon as it is
+  ready, without waiting for the slowest site;
 - uses only **Check for AI** buttons on page 2 and later search pages;
 - adds a **Check for AI** button to later results for on-demand analysis;
 - can analyze the rendered article in the currently open tab when direct
@@ -46,7 +48,7 @@ runs an English AI-text classifier locally on the backend computer.
 - detects explicit AI disclosures and leaked chatbot phrases;
 - supports an optional external classifier;
 - caches results in both the extension and the API;
-- retries temporary network and website failures once before showing an error;
+- limits a slow page request to 8 seconds and lets the user retry it manually;
 - distinguishes blocked, restricted, JavaScript-only, missing, rate-limited,
   non-HTML, and temporarily unavailable pages;
 - recovers article text from JSON-LD when a page's visible HTML is only a shell;
@@ -85,7 +87,7 @@ require downloading benchmark datasets or scoring 1,600 validation texts.
    approximately 126 MB ONNX model.
 2. Double-click `start.cmd` whenever you want to use the extension. Keep the
    window open while Chrome is running checks.
-3. Verify <http://127.0.0.1:8787/health>. It must report version `0.9.0` and
+3. Verify <http://127.0.0.1:8787/health>. It must report version `0.9.1` and
    `"calibrated": true`.
 
 The PowerShell scripts behind those launchers also detect a missing environment,

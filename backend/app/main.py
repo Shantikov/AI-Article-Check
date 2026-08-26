@@ -54,7 +54,8 @@ local_model = (
     if settings.local_model_enabled
     else None
 )
-semaphore = asyncio.Semaphore(2)
+fetch_semaphore = asyncio.Semaphore(settings.fetch_concurrency)
+inference_semaphore = asyncio.Semaphore(settings.inference_concurrency)
 
 
 @asynccontextmanager
@@ -66,7 +67,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="AI Article Check API",
-    version="0.9.0",
+    version="0.9.1",
     lifespan=lifespan,
 )
 app.add_middleware(
@@ -125,10 +126,11 @@ async def analyze_article(
     detector_output = analyze_heuristically(article)
     if local_model:
         try:
-            model_output = await asyncio.to_thread(
-                local_model.analyze,
-                article.text,
-            )
+            async with inference_semaphore:
+                model_output = await asyncio.to_thread(
+                    local_model.analyze,
+                    article.text,
+                )
             detector_output = combine_with_local_model(
                 detector_output,
                 model_output,
@@ -213,53 +215,54 @@ async def analyze_url(raw_url: str, *, force: bool = False) -> AnalysisResult:
         if cached:
             return cached.model_copy(update={"url": raw_url})
 
-    async with semaphore:
-        final_url: str | None = None
-        try:
+    final_url: str | None = None
+    try:
+        async with fetch_semaphore:
             page = await fetch_html(
                 cache_key,
                 timeout_seconds=settings.fetch_timeout_seconds,
                 max_bytes=settings.max_download_bytes,
+                max_retries=settings.fetch_max_retries,
             )
-            final_url = page.final_url
-            article = extract_article(page.html)
-            failure = diagnose_extraction_failure(
-                page.html,
-                word_count=article.word_count,
+        final_url = page.final_url
+        article = extract_article(page.html)
+        failure = diagnose_extraction_failure(
+            page.html,
+            word_count=article.word_count,
+        )
+        if failure:
+            raise FetchError(
+                failure.message,
+                code=failure.code,
+                retryable=failure.retryable,
             )
-            if failure:
-                raise FetchError(
-                    failure.message,
-                    code=failure.code,
-                    retryable=failure.retryable,
-                )
-            result = await analyze_article(
-                raw_url,
-                final_url=page.final_url,
-                article=article,
-                content_truncated=page.truncated,
-            )
-        except FetchError as exc:
-            result = AnalysisResult(
-                url=raw_url,
-                final_url=final_url,
-                status="error",
-                label="unavailable",
-                error=str(exc),
-                error_code=exc.code,
-                retryable=exc.retryable,
-                analyzed_at=now_iso(),
-            )
-        except Exception:
-            result = AnalysisResult(
-                url=raw_url,
-                status="error",
-                label="unavailable",
-                error="Internal analysis error",
-                error_code="internal_error",
-                retryable=True,
-                analyzed_at=now_iso(),
-            )
+        result = await analyze_article(
+            raw_url,
+            final_url=page.final_url,
+            article=article,
+            content_truncated=page.truncated,
+        )
+    except FetchError as exc:
+        result = AnalysisResult(
+            url=raw_url,
+            final_url=final_url,
+            status="error",
+            label="unavailable",
+            error=str(exc),
+            error_code=exc.code,
+            retryable=exc.retryable,
+            analyzed_at=now_iso(),
+        )
+    except Exception:
+        result = AnalysisResult(
+            url=raw_url,
+            status="error",
+            label="unavailable",
+            error="Internal analysis error",
+            error_code="internal_error",
+            retryable=True,
+            analyzed_at=now_iso(),
+        )
 
     if result.status == "ok":
         await cache.set(cache_key, result)
@@ -307,38 +310,37 @@ async def analyze_browser_text(request: AnalyzeTextRequest) -> AnalysisResult:
             analyzed_at=now_iso(),
         )
 
-    async with semaphore:
-        try:
-            result = await analyze_article(
-                request.url,
-                final_url=canonical_key,
-                article=article,
-                analysis_source="browser_page",
-            )
-        except FetchError as exc:
-            result = AnalysisResult(
-                url=request.url,
-                final_url=canonical_key,
-                status="error",
-                label="unavailable",
-                error=str(exc),
-                error_code=exc.code,
-                retryable=exc.retryable,
-                analysis_source="browser_page",
-                analyzed_at=now_iso(),
-            )
-        except Exception:
-            result = AnalysisResult(
-                url=request.url,
-                final_url=canonical_key,
-                status="error",
-                label="unavailable",
-                error="Internal analysis error",
-                error_code="internal_error",
-                retryable=True,
-                analysis_source="browser_page",
-                analyzed_at=now_iso(),
-            )
+    try:
+        result = await analyze_article(
+            request.url,
+            final_url=canonical_key,
+            article=article,
+            analysis_source="browser_page",
+        )
+    except FetchError as exc:
+        result = AnalysisResult(
+            url=request.url,
+            final_url=canonical_key,
+            status="error",
+            label="unavailable",
+            error=str(exc),
+            error_code=exc.code,
+            retryable=exc.retryable,
+            analysis_source="browser_page",
+            analyzed_at=now_iso(),
+        )
+    except Exception:
+        result = AnalysisResult(
+            url=request.url,
+            final_url=canonical_key,
+            status="error",
+            label="unavailable",
+            error="Internal analysis error",
+            error_code="internal_error",
+            retryable=True,
+            analysis_source="browser_page",
+            analyzed_at=now_iso(),
+        )
 
     if result.status == "ok":
         for key in {cache_key, canonical_key}:

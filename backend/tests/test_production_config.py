@@ -36,6 +36,21 @@ def test_invalid_extension_id_is_rejected() -> None:
         )
 
 
+def test_fast_batch_defaults_keep_network_and_inference_limits_separate() -> None:
+    settings = Settings()
+
+    assert settings.fetch_timeout_seconds == 8.0
+    assert settings.fetch_max_retries == 0
+    assert settings.fetch_concurrency == 6
+    assert settings.inference_concurrency == 2
+
+
+@pytest.mark.parametrize("field", ["fetch_concurrency", "inference_concurrency"])
+def test_concurrency_must_be_positive(field: str) -> None:
+    with pytest.raises(ValueError):
+        Settings(**{field: 0})
+
+
 @pytest.mark.asyncio
 async def test_sliding_window_rate_limiter_recovers_after_window() -> None:
     limiter = SlidingWindowLimiter(limit=2, window_seconds=10)

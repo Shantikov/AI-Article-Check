@@ -126,14 +126,7 @@ async function scanResults() {
     if (!pending.length) return;
 
     for (const target of pending) setLoading(target.badge);
-    const response = await chrome.runtime.sendMessage({
-      type: "ANALYZE_URLS",
-      urls: pending.map((target) => target.url),
-    });
-    const resultMap = new Map((response?.results || []).map((result) => [result.url, result]));
-    for (const target of pending) {
-      renderResult(target.badge, resultMap.get(target.url));
-    }
+    await Promise.all(pending.map(analyzeSearchTarget));
   } catch (error) {
     for (const target of pending) {
       if (target.badge.dataset.acsState === "loading") {
@@ -148,6 +141,24 @@ async function scanResults() {
     }
   } finally {
     scanRunning = false;
+  }
+}
+
+async function analyzeSearchTarget(target) {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: "ANALYZE_URLS",
+      urls: [target.url],
+    });
+    renderResult(target.badge, response?.results?.[0]);
+  } catch (error) {
+    renderResult(target.badge, {
+      status: "error",
+      label: "unavailable",
+      error: error?.message || "Extension error",
+      error_code: "extension_error",
+      retryable: true,
+    });
   }
 }
 

@@ -1,15 +1,60 @@
+import asyncio
+
 import pytest
 from fastapi.testclient import TestClient
 
 from app import main
 from app.cache import ResultCache
 from app.fetcher import FetchedPage
-from app.models import AnalyzeTextRequest
+from app.models import AnalyzeTextRequest, BatchAnalyzeRequest
 
 
 def article_html(word: str) -> str:
     text = " ".join([word] * 100)
     return f"<html><article><p>{text}</p></article></html>"
+
+
+@pytest.mark.asyncio
+async def test_batch_fetches_six_pages_concurrently_with_fast_limits(
+    monkeypatch,
+) -> None:
+    active_fetches = 0
+    peak_fetches = 0
+    started_fetches = 0
+    all_started = asyncio.Event()
+    received_options: list[dict[str, object]] = []
+
+    async def fake_fetch_html(url: str, **kwargs) -> FetchedPage:
+        nonlocal active_fetches, peak_fetches, started_fetches
+        received_options.append(kwargs)
+        active_fetches += 1
+        started_fetches += 1
+        peak_fetches = max(peak_fetches, active_fetches)
+        if started_fetches == 6:
+            all_started.set()
+        await asyncio.wait_for(all_started.wait(), timeout=0.5)
+        active_fetches -= 1
+        return FetchedPage(final_url=url, html=article_html("article"))
+
+    monkeypatch.setattr(main, "fetch_html", fake_fetch_html)
+    monkeypatch.setattr(main, "fetch_semaphore", asyncio.Semaphore(6))
+    monkeypatch.setattr(main, "local_model", None)
+    monkeypatch.setattr(main, "external_detector", None)
+    monkeypatch.setattr(main, "cache", ResultCache(3_600))
+
+    response = await asyncio.wait_for(
+        main.analyze_batch(
+            BatchAnalyzeRequest(
+                urls=[f"https://example.com/article-{index}" for index in range(6)]
+            )
+        ),
+        timeout=1,
+    )
+
+    assert peak_fetches == 6
+    assert len(response.results) == 6
+    assert all(option["timeout_seconds"] == 8.0 for option in received_options)
+    assert all(option["max_retries"] == 0 for option in received_options)
 
 
 @pytest.mark.asyncio

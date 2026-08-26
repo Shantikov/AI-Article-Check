@@ -25,7 +25,10 @@ class Settings(BaseSettings):
     preload_model: bool = False
     cache_ttl_seconds: int = 43_200
     max_download_bytes: int = 5_000_000
-    fetch_timeout_seconds: float = 12.0
+    fetch_timeout_seconds: float = 8.0
+    fetch_max_retries: int = 0
+    fetch_concurrency: int = 6
+    inference_concurrency: int = 2
     local_model_enabled: bool = True
     local_model_id: str = "onnx-community/tmr-ai-text-detector-ONNX"
     local_model_filename: str = "onnx/model_int8.onnx"
@@ -40,6 +43,20 @@ class Settings(BaseSettings):
     def validate_non_negative_integer(cls, value: int) -> int:
         if value < 0:
             raise ValueError("Rate-limit settings must not be negative")
+        return value
+
+    @field_validator("fetch_max_retries")
+    @classmethod
+    def validate_non_negative_retries(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError("FETCH_MAX_RETRIES must not be negative")
+        return value
+
+    @field_validator("fetch_concurrency", "inference_concurrency")
+    @classmethod
+    def validate_positive_concurrency(cls, value: int) -> int:
+        if value < 1:
+            raise ValueError("Concurrency settings must be at least 1")
         return value
 
     @field_validator("allowed_extension_ids")
