@@ -7,22 +7,35 @@
       <stop offset="0.55" stop-color="#172554"/>
       <stop offset="1" stop-color="#164e63"/>
     </linearGradient>
-    <linearGradient id="iconBackground" x1="14" y1="8" x2="104" y2="112" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#2563eb"/>
-      <stop offset="1" stop-color="#0891b2"/>
-    </linearGradient>
+    <clipPath id="promoLens">
+      <circle cx="77" cy="73" r="34"/>
+    </clipPath>
   </defs>
   <rect width="440" height="280" rx="24" fill="url(#background)"/>
   <circle cx="390" cy="-8" r="106" fill="#2563eb" opacity=".16"/>
   <circle cx="438" cy="240" r="128" fill="#06b6d4" opacity=".10"/>
-  <g transform="translate(34 63)">
-    <rect width="112" height="112" rx="25" fill="url(#iconBackground)"/>
-    <path d="M29 18h37l20 20v51a7 7 0 0 1-7 7H29a7 7 0 0 1-7-7V25a7 7 0 0 1 7-7Z" fill="#fff"/>
-    <path d="M66 18v15a5 5 0 0 0 5 5h15" fill="#bfdbfe"/>
-    <path d="M35 45h30M35 57h21M35 69h15" fill="none" stroke="#2563eb" stroke-linecap="round" stroke-width="5"/>
-    <circle cx="69" cy="70" r="18" fill="#0f172a" stroke="#fff" stroke-width="6"/>
-    <path d="m82 83 16 16" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="8"/>
-    <path d="m60 70 6 6 11-14" fill="none" stroke="#67e8f9" stroke-linecap="round" stroke-linejoin="round" stroke-width="5"/>
+  <g transform="translate(34 63) scale(.875)">
+    <rect x="10" y="10" width="86" height="96" rx="10" fill="#0b1f3a" stroke="#183b63" stroke-width="2"/>
+    <circle cx="22" cy="23" r="2.5" fill="#dbeafe"/>
+    <circle cx="31" cy="23" r="2.5" fill="#dbeafe"/>
+    <circle cx="40" cy="23" r="2.5" fill="#dbeafe"/>
+    <path d="M51 23h31M21 36h62M21 47h45M21 58h57M21 69h42M21 80h55M21 91h49"
+          fill="none" stroke="#dbeafe" stroke-linecap="round" stroke-width="4"/>
+    <g clip-path="url(#promoLens)" opacity=".48">
+      <path d="M39 43h73M38 55h70M38 67h75M38 79h72M38 91h69"
+            fill="none" stroke="#f8fafc" stroke-linecap="round" stroke-width="4.5"/>
+    </g>
+    <g clip-path="url(#promoLens)" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="5">
+      <path d="M54 86 65 55 76 86M59 73h12" stroke="#8b5cf6" stroke-dasharray="5 2.5"/>
+      <path d="M85 56v30" stroke="#22d3ee" stroke-dasharray="5 2.5"/>
+    </g>
+    <circle cx="77" cy="73" r="37" fill="none" stroke="#06172c" stroke-width="10"/>
+    <circle cx="77" cy="73" r="37" fill="none" stroke="#06b6d4" stroke-width="7"/>
+    <circle cx="77" cy="73" r="33" fill="none" stroke="#7dd3fc" stroke-width="1.8"/>
+    <path d="M53 50a33 33 0 0 1 39-5" fill="none" stroke="#e0f2fe" stroke-linecap="round" stroke-width="2.2" opacity=".9"/>
+    <path d="m103 99 18 18" fill="none" stroke="#06172c" stroke-linecap="round" stroke-width="15"/>
+    <path d="m103 99 18 18" fill="none" stroke="#06b6d4" stroke-linecap="round" stroke-width="10"/>
+    <path d="m105 99 17 17" fill="none" stroke="#7dd3fc" stroke-linecap="round" stroke-width="2" opacity=".9"/>
   </g>
   <text x="172" y="112" fill="#fff" font-family="Arial, sans-serif" font-size="29" font-weight="700">AI Article Check</text>
   <text x="173" y="144" fill="#bae6fd" font-family="Arial, sans-serif" font-size="15">AI-writing signals beside</text>
