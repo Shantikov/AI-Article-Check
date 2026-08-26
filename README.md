@@ -24,17 +24,9 @@ runs an English AI-text classifier locally on the backend computer.
 - groups short tooltip reasons into evidence for and against AI authorship;
 - opens a detailed evidence card with an explanation for every signal when a
   completed badge is clicked;
-- fits separate probability curves and decision limits for pages yielding 1,
-  2, or 3+ text samples from a 1,600-text MAGE validation subset;
-- adds a separate 800-text MAGE benchmark covering 8 natural-text domains and
-  27 generators without using any of those records to fit the detector;
-- reports external accuracy, coverage, calibration quality, false positives,
-  missed AI, and results by domain, generator, generation mode, and text length;
-- keeps the MAGE validation split used for calibration strictly separate from
-  the untouched MAGE test split used for the final report;
-- compares pinned TMR, GLYPH, and Fakespot ONNX detectors through a separate
-  validation-selection holdout before allowing a challenger onto the external
-  MAGE test;
+- uses the pinned TMR ONNX detector selected through offline benchmark testing;
+- uses separate probability curves and decision limits for pages yielding 1,
+  2, or 3+ text samples;
 - displays the resulting benchmark-calibrated **AI match** percentage while
   retaining the underlying sample counts on hover and click;
 - keeps calibrated estimates continuous and bounded to **1–99%**, because a text
@@ -87,7 +79,7 @@ require downloading benchmark datasets or scoring 1,600 validation texts.
    approximately 126 MB ONNX model.
 2. Double-click `start.cmd` whenever you want to use the extension. Keep the
    window open while Chrome is running checks.
-3. Verify <http://127.0.0.1:8787/health>. It must report version `0.9.1` and
+3. Verify <http://127.0.0.1:8787/health>. It must report version `0.9.2` and
    `"calibrated": true`.
 
 The PowerShell scripts behind those launchers also detect a missing environment,
@@ -134,7 +126,9 @@ Verify the API at <http://127.0.0.1:8787/health>. The response must contain
 ### Developer evaluation
 
 The following commands are included only in the development archive or source
-repository. Install the additional tooling first:
+repository. They are never run when the extension or production server starts.
+The released extension loads only the pinned TMR model. Install the additional
+tooling first:
 
 ```bash
 cd backend
@@ -173,7 +167,7 @@ scores are cached in `evaluation/data/web_scores.jsonl`, so recalculating the
 report after a calibration change does not run all 800 model inferences again.
 Use `evaluation.evaluate_web --rescore` only after changing the ONNX model.
 
-Compare deployable detector models with one command:
+An optional offline development command can compare deployable detector models:
 
 ```powershell
 .\.venv\Scripts\python.exe -m evaluation.compare_models
@@ -188,13 +182,15 @@ MAGE test texts. A challenger must improve balanced accuracy by at least three
 percentage points while keeping false positives, AI precision, decided-case
 accuracy, calibration error, and coverage inside explicit safety limits.
 
-The command compares pinned revisions of TMR, GLYPH v1.1, and Fakespot
-RoBERTa. TMR's existing score caches are reused when compatible. The two new
-models require about 743 MB of additional downloads and each validation text is
-scored once; subsequent runs reuse candidate-specific caches. Results are saved
-to `evaluation/reports/model_comparison_latest.json`. The command deliberately
-does not change `app/config.py` or `calibration.json`; a model is activated only
-after its report has been reviewed.
+This developer-only command compares pinned revisions of TMR, GLYPH v1.1, and
+Fakespot RoBERTa. It is not part of normal installation, startup, or article
+analysis. TMR's existing score caches are reused when compatible. The two
+challengers require about 743 MB of additional downloads and each validation
+text is scored once; subsequent runs reuse candidate-specific caches. Results
+are saved to `evaluation/reports/model_comparison_latest.json`. The command
+deliberately does not change `app/config.py` or `calibration.json`; a model is
+activated only after its report has been reviewed. The current production model
+remains TMR.
 
 ### Chrome extension
 

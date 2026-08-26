@@ -11,8 +11,12 @@ body {
 main { padding: 16px; }
 
 .app-header {
-  display: block;
+  align-items: center;
+  display: flex;
+  gap: 10px;
 }
+
+.app-icon { border-radius: 8px; flex: 0 0 auto; }
 
 h1 {
   font-size: 18px;

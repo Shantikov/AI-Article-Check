@@ -9,7 +9,7 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "dist"
-FIXED_ZIP_DATE = (2026, 8, 25, 0, 0, 0)
+FIXED_ZIP_DATE = (2026, 8, 26, 0, 0, 0)
 
 ROOT_FILES = {
     "DEPLOYMENT.md",
@@ -69,6 +69,7 @@ def production_files() -> set[str]:
         | BACKEND_RUNTIME_FILES
         | files_under("backend/app")
         | files_under("extension")
+        | files_under("store-assets")
     )
 
 

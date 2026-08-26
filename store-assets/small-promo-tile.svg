@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="280" viewBox="0 0 440 280" role="img" aria-labelledby="title description">
+  <title id="title">AI Article Check</title>
+  <desc id="description">Check English articles for AI-writing signals from Google Search.</desc>
+  <defs>
+    <linearGradient id="background" x1="38" y1="24" x2="404" y2="258" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0f172a"/>
+      <stop offset="0.55" stop-color="#172554"/>
+      <stop offset="1" stop-color="#164e63"/>
+    </linearGradient>
+    <linearGradient id="iconBackground" x1="14" y1="8" x2="104" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#0891b2"/>
+    </linearGradient>
+  </defs>
+  <rect width="440" height="280" rx="24" fill="url(#background)"/>
+  <circle cx="390" cy="-8" r="106" fill="#2563eb" opacity=".16"/>
+  <circle cx="438" cy="240" r="128" fill="#06b6d4" opacity=".10"/>
+  <g transform="translate(34 63)">
+    <rect width="112" height="112" rx="25" fill="url(#iconBackground)"/>
+    <path d="M29 18h37l20 20v51a7 7 0 0 1-7 7H29a7 7 0 0 1-7-7V25a7 7 0 0 1 7-7Z" fill="#fff"/>
+    <path d="M66 18v15a5 5 0 0 0 5 5h15" fill="#bfdbfe"/>
+    <path d="M35 45h30M35 57h21M35 69h15" fill="none" stroke="#2563eb" stroke-linecap="round" stroke-width="5"/>
+    <circle cx="69" cy="70" r="18" fill="#0f172a" stroke="#fff" stroke-width="6"/>
+    <path d="m82 83 16 16" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="8"/>
+    <path d="m60 70 6 6 11-14" fill="none" stroke="#67e8f9" stroke-linecap="round" stroke-linejoin="round" stroke-width="5"/>
+  </g>
+  <text x="172" y="112" fill="#fff" font-family="Arial, sans-serif" font-size="29" font-weight="700">AI Article Check</text>
+  <text x="173" y="144" fill="#bae6fd" font-family="Arial, sans-serif" font-size="15">AI-writing signals beside</text>
+  <text x="173" y="166" fill="#bae6fd" font-family="Arial, sans-serif" font-size="15">Google Search results</text>
+  <rect x="173" y="190" width="172" height="31" rx="15.5" fill="#fff" opacity=".10"/>
+  <text x="191" y="211" fill="#e0f2fe" font-family="Arial, sans-serif" font-size="13" font-weight="700">English articles only</text>
+</svg>

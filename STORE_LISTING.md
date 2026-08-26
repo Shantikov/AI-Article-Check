@@ -8,6 +8,11 @@ AI Article Check
 
 Checks English articles for AI-writing signals directly from Google Search.
 
+## Public links
+
+- Privacy policy: <https://ai-article-check-production.up.railway.app/privacy>
+- Support: <https://github.com/Shantikov/AI-Article-Check/issues>
+
 ## Single purpose
 
 AI Article Check adds an AI-match estimate beside Google Search article results
@@ -36,5 +41,7 @@ on the first Google results page. Later results and later Google pages require a
 manual click. Manual open-page analysis is disabled on browser-internal pages
 and Google Search itself. The current model supports English articles only.
 
-Before submission, add the public privacy-policy URL, support contact, owned
-icons, screenshots, category, and the tested production API URL.
+The owned 128x128 icon and 440x280 promotional tile are in `store-assets`.
+Before submission, capture at least one real 1280x800 screenshot from the final
+installed build, choose the category, and confirm the support repository is
+publicly accessible.

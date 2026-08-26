@@ -12,11 +12,22 @@ def test_product_name_is_consistent_in_extension_ui() -> None:
     html = (ROOT / "extension" / "popup.html").read_text(encoding="utf-8")
 
     assert manifest["name"] == "AI Article Check"
-    assert manifest["version"] == "0.9.1"
+    assert manifest["version"] == "0.9.2"
+    assert manifest["icons"] == {
+        "16": "icons/icon16.png",
+        "32": "icons/icon32.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png",
+    }
+    assert manifest["action"]["default_icon"] == {
+        "16": "icons/icon16.png",
+        "32": "icons/icon32.png",
+    }
     assert manifest["action"]["default_title"] == "AI Article Check"
     assert "<title>AI Article Check</title>" in html
     assert "<h1>AI Article Check</h1>" in html
     assert "AI Content Signal" not in html
+    assert 'src="icons/icon32.png"' in html
     assert "optional_host_permissions" not in manifest
 
 

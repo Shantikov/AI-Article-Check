@@ -63,10 +63,10 @@ rate-limit errors, and all Google result controls.
 
 ## 3. Release checklist
 
-- replace the operator/contact placeholders in `PRIVACY.md`;
-- publish that privacy policy at a stable public HTTPS URL;
+- verify the public privacy page at `https://YOUR_API/privacy`;
 - complete the listing text and permission declarations from `STORE_LISTING.md`;
-- add screenshots and icons owned by the project;
+- add at least one real 1280x800 screenshot; the owned icons and promotional
+  tile are already included under `store-assets`;
 - verify the exact production extension ID in `ALLOWED_EXTENSION_IDS`;
 - verify that no local API address appears in the store ZIP;
 - configure hosting logs and retention to match the published privacy policy;

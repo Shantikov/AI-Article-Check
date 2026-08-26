@@ -2,12 +2,10 @@
 
 Last updated: 26 August 2026
 
-> Publication template: replace `[operator name]`, `[contact email]`, and
-> `[privacy policy URL]` before submitting the extension to the Chrome Web Store.
-
 AI Article Check checks English-language article text for signals associated
-with AI-generated writing. This policy describes the public hosted version
-operated by `[operator name]` at `[privacy policy URL]`.
+with AI-generated writing. This policy describes the public Chrome extension
+and its hosted analysis service. The public copy is available at
+<https://ai-article-check-production.up.railway.app/privacy>.
 
 ## Data processed
 
@@ -31,9 +29,9 @@ not persist raw article text in its own database. Analysis results are cached in
 server memory for up to 12 hours by default and disappear when that process is
 restarted. Browser-side cached results expire after 24 hours.
 
-Hosting-provider logs and their retention must be configured and disclosed by
-the operator before publication. The extension does not sell personal data,
-use article content for advertising, or use submitted content to train a model.
+Hosting-provider logs follow the provider's configured retention settings. The
+extension does not sell personal data, use article content for advertising, or
+use submitted content to train a model.
 
 ## Sharing
 
@@ -50,5 +48,5 @@ avoid manual page analysis, clear the extension's site data in Chrome, or
 uninstall the extension. The local development build sends requests only to the
 user's own computer and is not the Chrome Web Store build described above.
 
-For privacy questions or deletion requests concerning retained service logs,
-contact `[contact email]`.
+For privacy or support questions, use the
+[AI Article Check support page](https://github.com/Shantikov/AI-Article-Check/issues).

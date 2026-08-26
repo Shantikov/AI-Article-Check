@@ -5,6 +5,7 @@ from typing import Literal
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 
 from .cache import ResultCache
 from .config import get_settings
@@ -30,6 +31,7 @@ from .models import (
     ExtractedArticle,
 )
 from .onnx_detector import LocalOnnxDetector, ModelUnavailableError, is_likely_english
+from .privacy import privacy_html
 from .rate_limit import AnalysisRateLimitMiddleware
 
 
@@ -67,7 +69,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="AI Article Check API",
-    version="0.9.1",
+    version="0.9.2",
     lifespan=lifespan,
 )
 app.add_middleware(
@@ -372,6 +374,11 @@ async def health() -> dict[str, str | bool]:
             else "none"
         ),
     }
+
+
+@app.get("/privacy", response_class=HTMLResponse, include_in_schema=False)
+async def privacy() -> HTMLResponse:
+    return HTMLResponse(privacy_html())
 
 
 @app.post("/api/v1/analyze/batch", response_model=BatchAnalyzeResponse)

@@ -59,6 +59,10 @@ def test_store_extension_has_fixed_https_api_and_minimal_host_access() -> None:
 
     assert "manifest.json" in files
     assert "extension/manifest.json" not in files
+    assert "icons/icon16.png" in files
+    assert "icons/icon32.png" in files
+    assert "icons/icon48.png" in files
+    assert "icons/icon128.png" in files
     assert manifest["host_permissions"] == ["https://api.example.com/*"]
     assert "optional_host_permissions" not in manifest
     assert 'const BUILD_MODE = "public";' in background

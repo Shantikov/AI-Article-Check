@@ -183,7 +183,7 @@ async def _fetch_once(
     current_url = initial_url
     headers = {
         "User-Agent": (
-            "Mozilla/5.0 (compatible; AIArticleCheck/0.9.1; "
+            "Mozilla/5.0 (compatible; AIArticleCheck/0.9.2; "
             "+https://localhost.invalid)"
         ),
         "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.1",

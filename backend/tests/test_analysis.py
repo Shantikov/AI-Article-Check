@@ -209,6 +209,17 @@ def test_browser_text_endpoint_uses_same_analysis_pipeline(monkeypatch) -> None:
     assert payload["word_count"] == 120
 
 
+def test_public_privacy_page_is_available() -> None:
+    with TestClient(main.app) as client:
+        response = client.get("/privacy")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert "AI Article Check privacy policy" in response.text
+    assert "not used to train a" in response.text
+    assert "[contact email]" not in response.text
+
+
 def test_cors_allows_extension_origin_but_not_arbitrary_websites() -> None:
     with TestClient(main.app) as client:
         allowed = client.options(
