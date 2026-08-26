@@ -1,0 +1,12 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+backend/calibration.rejected.json
+backend/calibration.previous.json
+backend/evaluation/data/*.jsonl
+backend/evaluation/data/*.meta.json
+backend/evaluation/data/model_comparison/
+backend/evaluation/reports/*.json
+backend/evaluation/reports/model_comparison/

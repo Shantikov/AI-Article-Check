@@ -1,0 +1,18 @@
+services:
+  api:
+    build: ./backend
+    ports:
+      - "127.0.0.1:8787:8787"
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      LOCAL_MODEL_CACHE_DIR: /models
+      APP_ENVIRONMENT: development
+      PRELOAD_MODEL: "true"
+    volumes:
+      - model-cache:/models
+    restart: unless-stopped
+
+volumes:
+  model-cache:
