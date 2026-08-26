@@ -12,7 +12,7 @@ def test_product_name_is_consistent_in_extension_ui() -> None:
     html = (ROOT / "extension" / "popup.html").read_text(encoding="utf-8")
 
     assert manifest["name"] == "AI Article Check"
-    assert manifest["version"] == "0.9.4"
+    assert manifest["version"] == "0.9.5"
     assert manifest["icons"] == {
         "16": "icons/icon16.png",
         "32": "icons/icon32.png",
@@ -78,3 +78,6 @@ def test_google_results_are_rendered_as_each_check_finishes() -> None:
     assert "let cacheMutationQueue = Promise.resolve();" in background_script
     assert "function mutateCache(mutator)" in background_script
     assert 'excerpt.className = "acs-details-excerpt"' in content_script
+    assert 'appendMetric(metrics, "Words analyzed", analyzedWordsSummary(result))' in content_script
+    assert '"Text source"' not in content_script
+    assert '"Content version"' not in content_script

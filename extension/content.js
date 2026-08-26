@@ -578,20 +578,7 @@ function openDetailsPanel(badge) {
     appendMetric(metrics, "Samples checked", String(segments.checked));
     appendMetric(metrics, "AI-like samples", String(segments.ai));
     appendMetric(metrics, "Not AI-like", String(segments.nonAi));
-    appendMetric(metrics, "Words sampled", String(result.sampled_word_count || 0));
-    appendMetric(metrics, "Article words", String(result.word_count || 0));
-    appendMetric(
-      metrics,
-      "Text source",
-      result.analysis_source === "browser_page" ? "Open browser tab" : "Backend download",
-    );
-    if (result.content_fingerprint) {
-      appendMetric(
-        metrics,
-        "Content version",
-        String(result.content_fingerprint).slice(0, 8),
-      );
-    }
+    appendMetric(metrics, "Words analyzed", analyzedWordsSummary(result));
     panel.append(metrics);
 
     const groups = collectEvidenceGroups(result);
@@ -639,6 +626,15 @@ function appendMetric(container, label, value) {
   data.textContent = value;
   metric.append(name, data);
   container.append(metric);
+}
+
+function analyzedWordsSummary(result) {
+  const analyzed = Math.max(0, Number(result.sampled_word_count) || 0);
+  const article = Math.max(0, Number(result.word_count) || 0);
+  if (analyzed && article && analyzed < article) {
+    return `${analyzed.toLocaleString("en-US")} of ${article.toLocaleString("en-US")}`;
+  }
+  return (analyzed || article).toLocaleString("en-US");
 }
 
 function appendRecheckButton(panel, badge, label) {

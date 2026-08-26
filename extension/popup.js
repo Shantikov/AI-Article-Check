@@ -158,7 +158,7 @@ function prepareAnalysisDetails(result) {
   appendAnalysisMetric(
     metrics,
     "Words analyzed",
-    Number(result.sampled_word_count) || Number(result.word_count) || 0,
+    analyzedWordsSummary(result),
   );
   analysisDetails.append(metrics);
 
@@ -179,6 +179,15 @@ function appendAnalysisMetric(container, label, value) {
   data.textContent = String(value);
   metric.append(name, data);
   container.append(metric);
+}
+
+function analyzedWordsSummary(result) {
+  const analyzed = Math.max(0, Number(result.sampled_word_count) || 0);
+  const article = Math.max(0, Number(result.word_count) || 0);
+  if (analyzed && article && analyzed < article) {
+    return `${analyzed.toLocaleString("en-US")} of ${article.toLocaleString("en-US")}`;
+  }
+  return (analyzed || article).toLocaleString("en-US");
 }
 
 function appendEvidenceSection(title, reasons) {

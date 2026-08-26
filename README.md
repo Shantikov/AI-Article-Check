@@ -83,7 +83,7 @@ require downloading benchmark datasets or scoring 1,600 validation texts.
    approximately 126 MB ONNX model.
 2. Double-click `start.cmd` whenever you want to use the extension. Keep the
    window open while Chrome is running checks.
-3. Verify <http://127.0.0.1:8787/health>. It must report version `0.9.4` and
+3. Verify <http://127.0.0.1:8787/health>. It must report version `0.9.5` and
    `"calibrated": true`.
 
 The PowerShell scripts behind those launchers also detect a missing environment,
@@ -277,11 +277,12 @@ rejected merely because site-wide JavaScript contains CAPTCHA, Cloudflare, or
 access-denied configuration. HTTP 401/403 responses remain reported separately
 because in that case the server genuinely refused the backend request.
 
-Successful details cards include a compact **Content version** derived from the
-cleaned article. **Recheck page** bypasses both the browser extension cache and
-the backend cache, downloads the URL again, and replaces the saved result. This
-does not continuously monitor pages; it provides an explicit fresh check when
-the user suspects that an article changed.
+The cleaned article still has an internal content fingerprint so cache entries
+can be replaced safely, but that implementation detail is not displayed to the
+user. **Recheck page** bypasses both the browser extension cache and the backend
+cache, downloads the URL again, and replaces the saved result. This does not
+continuously monitor pages; it provides an explicit fresh check when the user
+suspects that an article changed.
 
 ## Length-aware calibration
 
