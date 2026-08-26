@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI Article Check</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <header class="app-header">
+        <h1>AI Article Check</h1>
+        <p class="language-note">English articles only</p>
+      </header>
+
+      <section class="analyze-card" aria-labelledby="analyze-heading">
+        <h2 id="analyze-heading" class="visually-hidden">Analyze an open article</h2>
+        <button id="analyze-current-page" class="primary-button" type="button" disabled>
+          Analyze this page
+        </button>
+        <p id="analyze-helper" class="helper-text">Use when a Google result could not be checked.</p>
+        <div id="current-page-result" class="page-result" aria-live="polite" hidden>
+          <strong id="current-page-summary"></strong>
+          <p id="current-page-details"></p>
+          <button
+            id="analysis-details-toggle"
+            class="details-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="analysis-details"
+            hidden
+          >View details</button>
+        </div>
+        <section id="analysis-details" class="analysis-details" hidden></section>
+      </section>
+
+      <section class="quick-setting" aria-labelledby="auto-results-label">
+        <label id="auto-results-label" for="auto-results">Auto-check on Google</label>
+        <select id="auto-results" name="autoResults">
+          <option value="3">First 3 results</option>
+          <option value="6">First 6 results</option>
+          <option value="8">First 8 results</option>
+        </select>
+        <p id="auto-message" class="auto-message" aria-live="polite"></p>
+      </section>
+
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

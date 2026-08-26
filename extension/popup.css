@@ -1,0 +1,185 @@
+:root {
+  color-scheme: light dark;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  width: 340px;
+}
+
+main { padding: 16px; }
+
+.app-header {
+  display: block;
+}
+
+h1 {
+  font-size: 18px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.language-note {
+  color: #5f6368;
+  font-size: 11px;
+  margin: 4px 0 0;
+}
+
+.visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+button, input, select {
+  border: 1px solid #dadce0;
+  border-radius: 7px;
+  box-sizing: border-box;
+  font: inherit;
+}
+
+.analyze-card { margin-top: 18px; }
+
+.primary-button {
+  background: #1a73e8;
+  border: 0;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  min-height: 42px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.primary-button:hover { background: #185abc; }
+.primary-button:disabled { cursor: not-allowed; opacity: 0.6; }
+.primary-button[aria-busy="true"] { cursor: wait; }
+
+.helper-text {
+  color: #5f6368;
+  font-size: 11px;
+  line-height: 1.35;
+  margin: 7px 0 0;
+  text-align: center;
+}
+
+.page-result {
+  border-radius: 7px;
+  font-size: 11px;
+  margin-top: 10px;
+  padding: 9px;
+}
+
+.page-result strong { display: block; font-size: 12px; }
+.page-result p { line-height: 1.35; margin: 3px 0 0; overflow-wrap: anywhere; }
+.page-result-loading { background: #e8f0fe; color: #1967d2; }
+.page-result-ai, .page-result-error { background: #fce8e6; color: #a50e0e; }
+.page-result-human { background: #e6f4ea; color: #137333; }
+.page-result-uncertain { background: #fef7e0; color: #8a5a00; }
+.page-result-neutral { background: #f1f3f4; color: #5f6368; }
+
+.details-toggle {
+  background: transparent;
+  border-color: currentColor;
+  color: inherit;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 8px;
+  padding: 7px 9px;
+  width: 100%;
+}
+
+.details-toggle:hover { background: rgb(255 255 255 / 10%); }
+
+.analysis-details {
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  font-size: 11px;
+  margin-top: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.analysis-details-summary {
+  line-height: 1.4;
+  margin: 0 0 10px;
+}
+
+.analysis-metrics {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 12px;
+}
+
+.analysis-metric {
+  background: #f8f9fa;
+  border-radius: 6px;
+  display: grid;
+  gap: 2px;
+  padding: 7px;
+}
+
+.analysis-metric span { color: #5f6368; font-size: 10px; }
+.analysis-metric strong { font-size: 12px; }
+
+.evidence-section { margin-top: 11px; }
+.evidence-section h3 { font-size: 11px; margin: 0 0 6px; }
+.evidence-list { display: grid; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.evidence-item {
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 7px;
+}
+.evidence-item strong { display: block; font-size: 11px; }
+.evidence-item p { color: #5f6368; line-height: 1.35; margin: 3px 0 0; }
+.evidence-empty { color: #5f6368; margin: 0; }
+
+.quick-setting {
+  align-items: center;
+  border-top: 1px solid #dadce0;
+  display: grid;
+  gap: 4px 10px;
+  grid-template-columns: 1fr auto;
+  margin-top: 16px;
+  padding-top: 14px;
+}
+
+.quick-setting label { font-size: 12px; font-weight: 600; }
+.quick-setting select {
+  background: transparent;
+  font-size: 11px;
+  padding: 7px 8px;
+}
+
+.auto-message {
+  color: #137333;
+  font-size: 10px;
+  grid-column: 1 / -1;
+  height: 11px;
+  margin: 0;
+  text-align: right;
+}
+
+@media (prefers-color-scheme: dark) {
+  .language-note, .helper-text {
+    color: #bdc1c6;
+  }
+  .quick-setting { border-color: #3c4043; }
+  select { border-color: #5f6368; }
+  .analysis-details { border-color: #5f6368; }
+  .analysis-metric, .evidence-item { background: #202124; }
+  .analysis-metric span, .evidence-item p, .evidence-empty { color: #bdc1c6; }
+  .page-result-loading { background: #182b49; color: #8ab4f8; }
+  .page-result-ai, .page-result-error { background: #3c1515; color: #f6aea9; }
+  .page-result-human { background: #12351f; color: #81c995; }
+  .page-result-uncertain { background: #3d2e00; color: #fdd663; }
+  .page-result-neutral { background: #303134; color: #bdc1c6; }
+}

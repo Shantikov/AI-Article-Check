@@ -1,0 +1,57 @@
+import httpx
+import pytest
+
+from app.fetcher import (
+    FetchError,
+    canonicalize_url,
+    error_for_http_status,
+    read_limited_body,
+    validate_public_url,
+)
+
+
+def test_canonicalize_removes_fragment_and_default_port() -> None:
+    assert (
+        canonicalize_url("https://Example.COM:443/story?q=1#section")
+        == "https://example.com/story?q=1"
+    )
+
+
+@pytest.mark.asyncio
+async def test_rejects_loopback_address() -> None:
+    with pytest.raises(FetchError):
+        await validate_public_url("http://127.0.0.1/private")
+
+
+@pytest.mark.asyncio
+async def test_rejects_localhost() -> None:
+    with pytest.raises(FetchError):
+        await validate_public_url("http://localhost/private")
+
+
+@pytest.mark.asyncio
+async def test_large_response_is_truncated_instead_of_rejected() -> None:
+    response = httpx.Response(
+        200,
+        content=b"x" * 200,
+        headers={"content-length": "200"},
+    )
+    body, truncated = await read_limited_body(response, max_bytes=80)
+    assert body == b"x" * 80
+    assert truncated is True
+
+
+def test_http_errors_have_specific_codes_and_retry_rules() -> None:
+    blocked = error_for_http_status(403)
+    missing = error_for_http_status(404)
+    limited = error_for_http_status(429)
+    server = error_for_http_status(503)
+
+    assert blocked.code == "http_access_blocked"
+    assert blocked.retryable is False
+    assert missing.code == "page_not_found"
+    assert missing.retryable is False
+    assert limited.code == "rate_limited"
+    assert limited.retryable is True
+    assert server.code == "server_error"
+    assert server.retryable is True

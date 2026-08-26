@@ -1,0 +1,79 @@
+{
+  "schema_version": 4,
+  "created_at": "2026-08-25T14:46:04.070097+00:00",
+  "dataset": "MAGE validation length-aware natural-text calibration",
+  "dataset_sha256": "31e808d960f50d129803f36165cc837443fa068bcd6bd392bb5e4a63777805ae",
+  "model_id": "onnx-community/tmr-ai-text-detector-ONNX",
+  "model_filename": "onnx/model_int8.onnx",
+  "method": "separate regularized Platt curves and conservative thresholds for 1, 2, and 3+ samples",
+  "bands": {
+    "1_segment": {
+      "samples": 954,
+      "human_samples": 490,
+      "ai_samples": 464,
+      "calibrator": {
+        "kind": "regularized_platt",
+        "feature": "standardized logit of mean sample score",
+        "slope": 1.2537537164388128,
+        "intercept": -0.18233109268475015,
+        "feature_mean": 1.5407211618896757,
+        "feature_scale": 3.152404352565121,
+        "probability_floor": 0.01,
+        "regularization": 2.0,
+        "finite_sample_targets": true
+      },
+      "thresholds": {
+        "human_max": 0.15,
+        "ai_min": 0.72,
+        "target_false_positive_rate": 0.01,
+        "target_false_negative_rate": 0.05
+      }
+    },
+    "2_segments": {
+      "samples": 364,
+      "human_samples": 190,
+      "ai_samples": 174,
+      "calibrator": {
+        "kind": "regularized_platt",
+        "feature": "standardized logit of mean sample score",
+        "slope": 2.0132036346269686,
+        "intercept": -0.32027762189810266,
+        "feature_mean": 1.0375056420274003,
+        "feature_scale": 2.8490141921210745,
+        "probability_floor": 0.01,
+        "regularization": 2.0,
+        "finite_sample_targets": true
+      },
+      "thresholds": {
+        "human_max": 0.19,
+        "ai_min": 0.84,
+        "target_false_positive_rate": 0.01,
+        "target_false_negative_rate": 0.05
+      }
+    },
+    "3_or_more_segments": {
+      "samples": 282,
+      "human_samples": 120,
+      "ai_samples": 162,
+      "calibrator": {
+        "kind": "regularized_platt",
+        "feature": "standardized logit of mean sample score",
+        "slope": 2.9054312676869425,
+        "intercept": 0.6664457171440241,
+        "feature_mean": 0.6690638361674274,
+        "feature_scale": 2.705424420141987,
+        "probability_floor": 0.01,
+        "regularization": 2.0,
+        "finite_sample_targets": true
+      },
+      "thresholds": {
+        "human_max": 0.4,
+        "ai_min": 0.69,
+        "target_false_positive_rate": 0.03,
+        "target_false_negative_rate": 0.05
+      }
+    }
+  },
+  "external_test_used": false,
+  "model_revision": "b9aa251e5bcda7e429fcc936767d921435945b60"
+}
