@@ -82,7 +82,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="AI Article Check API",
-    version="0.9.5",
+    version="0.9.6",
     lifespan=lifespan,
 )
 app.add_middleware(
@@ -414,9 +414,6 @@ async def analyze_browser_text(request: AnalyzeTextRequest) -> AnalysisResult:
             analyzed_at=now_iso(),
         )
 
-    if result.status == "ok":
-        for key in {cache_key, canonical_key}:
-            await cache.set(key, result)
     log_analysis_timing(
         source="browser_page",
         status=result.status,

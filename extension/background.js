@@ -25,37 +25,56 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "GET_SETTINGS") {
-    getSettings().then(sendResponse);
+    respondWith(
+      getSettings(),
+      sendResponse,
+      { apiBase: DEFAULT_SETTINGS.apiBase, autoResults: DEFAULT_SETTINGS.autoResults },
+    );
     return true;
   }
 
   if (message?.type === "GET_CURRENT_TAB_CONTEXT") {
-    getCurrentTabContext().then(sendResponse);
+    respondWith(
+      getCurrentTabContext(),
+      sendResponse,
+      { ok: false, canAnalyze: false },
+    );
     return true;
   }
 
   if (message?.type === "ANALYZE_URLS") {
-    analyzeUrls(message.urls, message.force === true).then(sendResponse);
+    respondWith(
+      analyzeUrls(message.urls, message.force === true),
+      sendResponse,
+      { ok: false, results: [] },
+    );
     return true;
   }
 
   if (message?.type === "GET_CACHED_RESULTS") {
-    getCachedResults(message.urls).then(sendResponse);
+    respondWith(
+      getCachedResults(message.urls),
+      sendResponse,
+      { ok: false, results: [] },
+    );
     return true;
   }
 
   if (message?.type === "ANALYZE_CURRENT_TAB") {
-    analyzeCurrentTab().then(sendResponse);
-    return true;
-  }
-
-  if (message?.type === "PING_BACKEND") {
-    pingBackend().then(sendResponse);
+    respondWith(
+      analyzeCurrentTab(),
+      sendResponse,
+      { ok: false, error: "The extension could not complete this request" },
+    );
     return true;
   }
 
   return false;
 });
+
+function respondWith(promise, sendResponse, fallback) {
+  Promise.resolve(promise).then(sendResponse, () => sendResponse(fallback));
+}
 
 async function getSettings() {
   const stored = await chrome.storage.sync.get({
@@ -97,29 +116,6 @@ function normalizeAutoResults(value, legacyValue) {
 
 function normalizeApiBase(value) {
   return String(value || "").trim().replace(/\/+$/, "");
-}
-
-async function pingBackend() {
-  const { apiBase } = await getSettings();
-  try {
-    const response = await fetch(`${apiBase}/health`, {
-      method: "GET",
-      signal: AbortSignal.timeout(6000),
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
-    return {
-      ok: payload.status === "ok",
-      detector: payload.detector || "unknown",
-      version: payload.version || "unknown",
-      modelConfigured: payload.model_configured === true,
-      modelLoaded: payload.model_loaded === true,
-      calibrated: payload.calibrated === true,
-      calibrationDataset: payload.calibration_dataset || "unknown",
-    };
-  } catch (error) {
-    return { ok: false, error: readableError(error) };
-  }
 }
 
 async function analyzeUrls(inputUrls, force = false) {
@@ -245,13 +241,13 @@ async function analyzeCurrentTab() {
     await requireSuccessfulResponse(response);
     const result = await response.json();
     if (result.status === "ok") {
-      const cache = await loadCache();
-      storeCachedResult(
-        cache,
-        result,
-        [page.url, page.canonicalUrl, result.url, result.final_url],
-      );
-      await saveCache(cache);
+      await mutateCache((cache) => {
+        storeCachedResult(
+          cache,
+          result,
+          [page.url, page.canonicalUrl, result.url, result.final_url],
+        );
+      });
     }
     return {
       ok: result.status === "ok",
@@ -336,11 +332,18 @@ function extractRenderedArticle() {
     ? blocks.join("\n")
     : normalizeText(clone.textContent);
   text = text.slice(0, 80000);
+  const currentUrl = new URL(location.href);
+  currentUrl.hash = "";
   const canonicalCandidate = document.querySelector("link[rel='canonical']")?.href;
   let canonicalUrl = null;
   try {
     const parsed = new URL(canonicalCandidate || "", location.href);
-    if (["http:", "https:"].includes(parsed.protocol)) {
+    const currentHost = currentUrl.hostname.toLowerCase().replace(/^www\./, "");
+    const canonicalHost = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    const sameSite = currentHost === canonicalHost
+      || currentHost.endsWith(`.${canonicalHost}`)
+      || canonicalHost.endsWith(`.${currentHost}`);
+    if (["http:", "https:"].includes(parsed.protocol) && sameSite) {
       parsed.hash = "";
       canonicalUrl = parsed.href;
     }
@@ -348,8 +351,6 @@ function extractRenderedArticle() {
     canonicalUrl = null;
   }
 
-  const currentUrl = new URL(location.href);
-  currentUrl.hash = "";
   return {
     url: currentUrl.href,
     canonicalUrl,
@@ -418,7 +419,7 @@ function mutateCache(mutator) {
 }
 
 function readableError(error) {
-  if (error?.name === "TimeoutError") return "The server did not respond in time";
-  if (error instanceof TypeError) return "Could not connect to the server";
+  if (error?.name === "TimeoutError") return "The analysis service did not respond in time";
+  if (error instanceof TypeError) return "Could not connect to the analysis service";
   return error?.message || "Unknown error";
 }

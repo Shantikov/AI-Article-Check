@@ -13,12 +13,18 @@ let autoMessageTimer;
 initialize();
 
 async function initialize() {
-  const [settings, tabContext] = await Promise.all([
-    chrome.runtime.sendMessage({ type: "GET_SETTINGS" }),
-    chrome.runtime.sendMessage({ type: "GET_CURRENT_TAB_CONTEXT" }),
-  ]);
-  autoResultsSelect.value = String(settings.autoResults);
-  setCurrentPageAvailability(tabContext);
+  try {
+    const [settings, tabContext] = await Promise.all([
+      chrome.runtime.sendMessage({ type: "GET_SETTINGS" }),
+      chrome.runtime.sendMessage({ type: "GET_CURRENT_TAB_CONTEXT" }),
+    ]);
+    autoResultsSelect.value = String(settings?.autoResults || 6);
+    setCurrentPageAvailability(tabContext);
+  } catch {
+    autoResultsSelect.value = "6";
+    setCurrentPageAvailability({ canAnalyze: false });
+    showAutoMessage("Reload the extension");
+  }
 }
 
 autoResultsSelect.addEventListener("change", async () => {
@@ -338,13 +344,13 @@ function detailedResultSummary(result) {
 function detailedEvidenceMessage(reason) {
   const aiSampleMatch = reason.match(/^(\d+) of (\d+) text samples were AI-like\.$/i);
   if (aiSampleMatch) {
-    return `${aiSampleMatch[1]} independently checked article samples crossed the model's decision boundary.`;
+    return `${aiSampleMatch[1]} independently checked article samples showed AI-like writing patterns.`;
   }
   const nonAiSampleMatch = reason.match(
     /^(\d+) of (\d+) text samples were not AI-like\.$/i,
   );
   if (nonAiSampleMatch) {
-    return `${nonAiSampleMatch[1]} independently checked article samples stayed below the model's decision boundary.`;
+    return `${nonAiSampleMatch[1]} independently checked article samples showed more human-like writing patterns.`;
   }
   const explanations = {
     "Page discloses AI use.": "The page explicitly says the article was written, generated, or prepared with AI.",

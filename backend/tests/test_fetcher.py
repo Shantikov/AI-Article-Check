@@ -5,6 +5,7 @@ from app.fetcher import (
     FetchError,
     canonicalize_url,
     error_for_http_status,
+    pinned_request_target,
     read_limited_body,
     validate_public_url,
 )
@@ -15,6 +16,28 @@ def test_canonicalize_removes_fragment_and_default_port() -> None:
         canonicalize_url("https://Example.COM:443/story?q=1#section")
         == "https://example.com/story?q=1"
     )
+
+
+def test_canonicalize_formats_ipv6_literal_safely() -> None:
+    assert canonicalize_url("https://[2606:4700:4700::1111]:443/story") == (
+        "https://[2606:4700:4700::1111]/story"
+    )
+
+
+def test_canonicalize_rejects_non_web_ports() -> None:
+    with pytest.raises(FetchError, match="standard web ports"):
+        canonicalize_url("https://example.com:8443/story")
+
+
+def test_pinned_https_target_preserves_host_and_sni() -> None:
+    target, host_header, extensions = pinned_request_target(
+        "https://example.com/story?q=1",
+        "203.0.113.10",
+    )
+
+    assert target == "https://203.0.113.10/story?q=1"
+    assert host_header == "example.com"
+    assert extensions == {"sni_hostname": "example.com"}
 
 
 @pytest.mark.asyncio

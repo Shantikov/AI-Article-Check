@@ -1,6 +1,6 @@
-# Chrome Web Store submission — AI Article Check 0.9.5
+# Chrome Web Store submission — AI Article Check 0.9.6
 
-Use `AI-Article-Check-0.9.5-store.zip` for the store draft. Do not upload the
+Use `AI-Article-Check-0.9.6-store.zip` for the store draft. Do not upload the
 source, development, backend, or GitHub-update archives.
 
 ## Store listing
@@ -130,10 +130,8 @@ private tabs, account names, bookmarks, or unrelated browser extensions.
 ## Final dashboard sequence
 
 1. Upload the store ZIP as a draft.
-2. Copy the permanent extension ID assigned by the dashboard.
-3. Set `ALLOWED_EXTENSION_IDS` to that ID on Railway and redeploy.
-4. Verify `/health`, URL analysis, and Analyze this page with the assigned ID.
-5. Complete Store listing, Privacy practices, Distribution, and publisher
+2. Verify `/health`, URL analysis, and Analyze this page with the uploaded build.
+3. Complete Store listing, Privacy practices, Distribution, and publisher
    contact information.
-6. Upload the real screenshots and existing store assets.
-7. Submit the draft for review.
+4. Upload the real screenshots and existing store assets.
+5. Submit the draft for review.

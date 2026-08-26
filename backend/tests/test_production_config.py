@@ -1,7 +1,10 @@
+import json
+
 import pytest
+from starlette.requests import Request
 
 from app.config import Settings
-from app.rate_limit import SlidingWindowLimiter
+from app.rate_limit import AnalysisRateLimitMiddleware, SlidingWindowLimiter
 
 
 def test_development_cors_accepts_unpacked_chrome_extensions() -> None:
@@ -66,3 +69,88 @@ async def test_sliding_window_rate_limiter_recovers_after_window() -> None:
     assert await limiter.allow("client", now=102) == (False, 8)
     assert await limiter.allow("other", now=102) == (True, 0)
     assert await limiter.allow("client", now=111) == (True, 0)
+
+
+@pytest.mark.asyncio
+async def test_sliding_window_rate_limiter_counts_batch_items() -> None:
+    limiter = SlidingWindowLimiter(limit=6, window_seconds=60)
+
+    assert await limiter.allow("client", cost=5, now=100) == (True, 0)
+    assert await limiter.allow("client", cost=2, now=101) == (False, 59)
+    assert await limiter.allow("client", cost=1, now=101) == (True, 0)
+
+
+@pytest.mark.asyncio
+async def test_sliding_window_rate_limiter_bounds_client_buckets() -> None:
+    limiter = SlidingWindowLimiter(
+        limit=10,
+        window_seconds=60,
+        max_client_keys=2,
+    )
+
+    assert await limiter.allow("first", now=100) == (True, 0)
+    assert await limiter.allow("second", now=100) == (True, 0)
+    assert await limiter.allow("third", now=100) == (True, 0)
+    assert list(limiter._requests) == ["second", "third"]
+
+
+@pytest.mark.asyncio
+async def test_batch_request_cost_matches_number_of_urls() -> None:
+    body = json.dumps({"urls": [f"https://example.com/{index}" for index in range(6)]}).encode()
+    sent = False
+
+    async def receive() -> dict[str, object]:
+        nonlocal sent
+        if sent:
+            return {"type": "http.request", "body": b"", "more_body": False}
+        sent = True
+        return {"type": "http.request", "body": body, "more_body": False}
+
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "scheme": "https",
+            "path": "/api/v1/analyze/batch",
+            "raw_path": b"/api/v1/analyze/batch",
+            "query_string": b"",
+            "headers": [(b"content-type", b"application/json")],
+            "client": ("10.0.0.1", 1234),
+            "server": ("testserver", 443),
+        },
+        receive,
+    )
+    middleware = AnalysisRateLimitMiddleware(
+        lambda *_args, **_kwargs: None,
+        limit=60,
+        window_seconds=60,
+    )
+
+    assert await middleware.request_cost(request) == 6
+
+
+def test_trusted_proxy_uses_valid_railway_real_ip() -> None:
+    middleware = AnalysisRateLimitMiddleware(
+        lambda *_args, **_kwargs: None,
+        limit=60,
+        window_seconds=60,
+        trust_proxy_headers=True,
+    )
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "scheme": "https",
+            "path": "/api/v1/analyze/text",
+            "raw_path": b"/api/v1/analyze/text",
+            "query_string": b"",
+            "headers": [
+                (b"x-real-ip", b"203.0.113.8"),
+                (b"x-forwarded-for", b"198.51.100.4, 10.0.0.1"),
+            ],
+            "client": ("10.0.0.2", 1234),
+            "server": ("testserver", 443),
+        }
+    )
+
+    assert middleware.client_key(request) == "203.0.113.8"

@@ -27,6 +27,12 @@ class FetchedPage:
     truncated: bool = False
 
 
+@dataclass(frozen=True)
+class ResolvedPublicUrl:
+    url: str
+    addresses: tuple[str, ...]
+
+
 async def read_limited_body(
     response: httpx.Response,
     max_bytes: int,
@@ -70,16 +76,26 @@ def canonicalize_url(raw_url: str) -> str:
     if not parts.hostname or parts.username or parts.password:
         raise FetchError("Invalid website address", code="invalid_url")
 
-    host = parts.hostname.lower().rstrip(".")
+    try:
+        host = parts.hostname.encode("idna").decode("ascii").lower().rstrip(".")
+    except UnicodeError as exc:
+        raise FetchError("Invalid website address", code="invalid_url") from exc
     try:
         port = parts.port
     except ValueError as exc:
         raise FetchError("Invalid port", code="invalid_url") from exc
+    expected_port = 80 if parts.scheme.lower() == "http" else 443
+    if port is not None and port != expected_port:
+        raise FetchError(
+            "Only standard web ports are supported",
+            code="invalid_url",
+        )
 
     default_port = (parts.scheme.lower() == "http" and port == 80) or (
         parts.scheme.lower() == "https" and port == 443
     )
-    netloc = host if not port or default_port else f"{host}:{port}"
+    display_host = f"[{host}]" if ":" in host else host
+    netloc = display_host if not port or default_port else f"{display_host}:{port}"
     path = parts.path or "/"
     return urlunsplit((parts.scheme.lower(), netloc, path, parts.query, ""))
 
@@ -98,10 +114,11 @@ def _is_forbidden_ip(value: str) -> bool:
     )
 
 
-async def validate_public_url(raw_url: str) -> str:
+async def resolve_public_url(raw_url: str) -> ResolvedPublicUrl:
     url = canonicalize_url(raw_url)
     parts = urlsplit(url)
-    assert parts.hostname
+    if not parts.hostname:
+        raise FetchError("Invalid website address", code="invalid_url")
 
     if parts.hostname in {"localhost", "localhost.localdomain"}:
         raise FetchError(
@@ -132,13 +149,43 @@ async def validate_public_url(raw_url: str) -> str:
 
     if not addresses:
         raise FetchError("Domain not found", code="dns_error", retryable=True)
+    public_addresses: list[str] = []
     for address in addresses:
-        if _is_forbidden_ip(address[4][0]):
+        candidate = str(ipaddress.ip_address(address[4][0]))
+        if _is_forbidden_ip(candidate):
             raise FetchError(
                 "The domain resolves to a private network",
                 code="private_address",
             )
-    return url
+        if candidate not in public_addresses:
+            public_addresses.append(candidate)
+    return ResolvedPublicUrl(url=url, addresses=tuple(public_addresses))
+
+
+async def validate_public_url(raw_url: str) -> str:
+    return (await resolve_public_url(raw_url)).url
+
+
+def pinned_request_target(url: str, address: str) -> tuple[str, str, dict[str, str]]:
+    parts = urlsplit(url)
+    if not parts.hostname:
+        raise FetchError("Invalid website address", code="invalid_url")
+    host = parts.hostname
+    port = parts.port or (443 if parts.scheme == "https" else 80)
+    default_port = (parts.scheme == "http" and port == 80) or (
+        parts.scheme == "https" and port == 443
+    )
+    display_address = f"[{address}]" if ":" in address else address
+    transport_netloc = (
+        display_address if default_port else f"{display_address}:{port}"
+    )
+    display_host = f"[{host}]" if ":" in host else host
+    host_header = display_host if default_port else f"{display_host}:{port}"
+    transport_url = urlunsplit(
+        (parts.scheme, transport_netloc, parts.path, parts.query, "")
+    )
+    extensions = {"sni_hostname": host} if parts.scheme == "https" else {}
+    return transport_url, host_header, extensions
 
 
 def error_for_http_status(status_code: int) -> FetchError:
@@ -183,7 +230,7 @@ async def _fetch_once(
     current_url = initial_url
     headers = {
         "User-Agent": (
-            "Mozilla/5.0 (compatible; AIArticleCheck/0.9.5; "
+            "Mozilla/5.0 (compatible; AIArticleCheck/0.9.6; "
             "+https://localhost.invalid)"
         ),
         "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.1",
@@ -191,55 +238,91 @@ async def _fetch_once(
     }
 
     timeout = httpx.Timeout(timeout_seconds)
-    async with httpx.AsyncClient(timeout=timeout, headers=headers) as client:
+    limits = httpx.Limits(max_connections=1, max_keepalive_connections=0)
+    async with httpx.AsyncClient(
+        timeout=timeout,
+        headers=headers,
+        limits=limits,
+        trust_env=False,
+    ) as client:
         for redirect_count in range(max_redirects + 1):
             try:
-                async with client.stream(
-                    "GET",
-                    current_url,
-                    follow_redirects=False,
-                ) as response:
-                    if response.status_code in {301, 302, 303, 307, 308}:
+                async with asyncio.timeout(timeout_seconds):
+                    resolved = await resolve_public_url(current_url)
+                    last_transport_error: httpx.TransportError | None = None
+                    redirect_location: str | None = None
+                    for address in resolved.addresses:
+                        transport_url, host_header, extensions = pinned_request_target(
+                            resolved.url,
+                            address,
+                        )
+                        try:
+                            async with client.stream(
+                                "GET",
+                                transport_url,
+                                headers={"Host": host_header},
+                                extensions=extensions,
+                                follow_redirects=False,
+                            ) as response:
+                                if response.status_code in {301, 302, 303, 307, 308}:
+                                    redirect_location = response.headers.get("location")
+                                    if not redirect_location:
+                                        raise FetchError(
+                                            "Redirect response has no destination",
+                                            code="invalid_response",
+                                        )
+                                    break
+
+                                if response.status_code >= 400:
+                                    raise error_for_http_status(response.status_code)
+
+                                content_type = response.headers.get(
+                                    "content-type", ""
+                                ).lower()
+                                if content_type and not any(
+                                    value in content_type
+                                    for value in ("text/html", "application/xhtml+xml")
+                                ):
+                                    raise FetchError(
+                                        "The URL does not return an HTML page",
+                                        code="non_html",
+                                    )
+
+                                body, truncated = await read_limited_body(
+                                    response,
+                                    max_bytes,
+                                )
+                                encoding = response.encoding or "utf-8"
+                                html = body.decode(encoding, errors="replace")
+                                return FetchedPage(
+                                    final_url=resolved.url,
+                                    html=html,
+                                    truncated=truncated,
+                                )
+                        except httpx.TransportError as exc:
+                            last_transport_error = exc
+                            continue
+
+                    if redirect_location is not None:
                         if redirect_count >= max_redirects:
                             raise FetchError(
                                 "Too many redirects",
                                 code="too_many_redirects",
                             )
-                        location = response.headers.get("location")
-                        if not location:
-                            raise FetchError(
-                                "Redirect response has no destination",
-                                code="invalid_response",
-                            )
-                        current_url = await validate_public_url(
-                            urljoin(current_url, location)
+                        current_url = canonicalize_url(
+                            urljoin(resolved.url, redirect_location)
                         )
                         continue
-
-                    if response.status_code >= 400:
-                        raise error_for_http_status(response.status_code)
-
-                    content_type = response.headers.get("content-type", "").lower()
-                    if content_type and not any(
-                        value in content_type
-                        for value in ("text/html", "application/xhtml+xml")
-                    ):
-                        raise FetchError(
-                            "The URL does not return an HTML page",
-                            code="non_html",
-                        )
-
-                    body, truncated = await read_limited_body(response, max_bytes)
-                    encoding = response.encoding or "utf-8"
-                    html = body.decode(encoding, errors="replace")
-                    return FetchedPage(
-                        final_url=current_url,
-                        html=html,
-                        truncated=truncated,
+                    if last_transport_error is not None:
+                        raise last_transport_error
+                    raise FetchError(
+                        "Domain not found",
+                        code="dns_error",
+                        retryable=True,
                     )
             except FetchError:
                 raise
-            except httpx.TimeoutException as exc:
+            except (TimeoutError, httpx.TimeoutException) as exc:
                 raise FetchError(
                     "The website did not respond in time",
                     code="timeout",
@@ -268,7 +351,7 @@ async def fetch_html(
     max_redirects: int = 5,
     max_retries: int = 1,
 ) -> FetchedPage:
-    initial_url = await validate_public_url(raw_url)
+    initial_url = canonicalize_url(raw_url)
     last_error: FetchError | None = None
     for attempt in range(max(0, max_retries) + 1):
         try:
@@ -284,5 +367,6 @@ async def fetch_html(
                 raise
             await asyncio.sleep(0.35 * (attempt + 1))
 
-    assert last_error is not None
+    if last_error is None:
+        raise FetchError("Could not download the page", retryable=True)
     raise last_error

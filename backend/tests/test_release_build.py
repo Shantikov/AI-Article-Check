@@ -75,6 +75,9 @@ def test_store_extension_has_fixed_https_api_and_minimal_host_access() -> None:
     )
     assert "eval(" not in packaged_code
     assert "new Function(" not in packaged_code
+    assert "Start the local backend" not in packaged_code
+    assert "Run setup.cmd" not in packaged_code
+    assert 'type === "PING_BACKEND"' not in packaged_code
 
 
 def test_submission_guide_is_in_source_but_not_store_package() -> None:

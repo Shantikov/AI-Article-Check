@@ -14,6 +14,8 @@ class BatchAnalyzeRequest(BaseModel):
         seen: set[str] = set()
         for url in urls:
             value = url.strip()
+            if len(value) > 4_096:
+                raise ValueError("URLs must not exceed 4096 characters")
             if value and value not in seen:
                 result.append(value)
                 seen.add(value)

@@ -15,6 +15,11 @@ def test_batch_request_supports_forced_recheck() -> None:
     assert forced.force is True
 
 
+def test_batch_request_rejects_overlong_url() -> None:
+    with pytest.raises(ValidationError):
+        BatchAnalyzeRequest(urls=["https://example.com/" + ("a" * 4_100)])
+
+
 def test_browser_text_request_strips_fields_and_rejects_blank_text() -> None:
     request = AnalyzeTextRequest(
         url=" https://example.com/story ",

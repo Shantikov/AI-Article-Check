@@ -1,6 +1,12 @@
 import numpy as np
+import pytest
 
-from app.onnx_detector import LocalOnnxDetector, is_likely_english, sample_text_chunks
+from app.onnx_detector import (
+    LocalOnnxDetector,
+    ModelUnavailableError,
+    is_likely_english,
+    sample_text_chunks,
+)
 
 
 def test_recognizes_ordinary_english_article() -> None:
@@ -173,3 +179,10 @@ def test_detector_supports_single_sigmoid_logit_models() -> None:
     scores = detector.score_chunks(["first", "second"])
     assert len(scores) == 2
     assert all(0.88 < score < 0.89 for score in scores)
+
+
+def test_detector_refuses_unpinned_downloads() -> None:
+    detector = LocalOnnxDetector("test/repo", "model.onnx")
+
+    with pytest.raises(ModelUnavailableError, match="pinned revisions"):
+        detector.prepare()

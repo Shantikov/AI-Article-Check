@@ -28,10 +28,11 @@ and its hosted analysis service. The public copy is available at
 
 The data is used only to provide article analysis, return an explanation, cache
 recent results, prevent abuse, and maintain the service. The application does
-not persist complete raw article text in its own database. Analysis results,
-including any short evidence excerpts, are cached in server memory for up to 12
-hours by default and disappear when that process is restarted. Browser-side
-cached results expire after 24 hours.
+not persist complete raw article text in its own database. Results from
+automatic URL checks, including any short evidence excerpts, are cached in
+service memory for up to 12 hours by default and disappear when that process is
+restarted. Results created from the user-submitted text of an open page are not
+placed in this shared cache. Browser-side cached results expire after 24 hours.
 
 Hosting-provider logs follow the provider's configured retention settings. The
 extension does not sell personal data, use article content for advertising, or

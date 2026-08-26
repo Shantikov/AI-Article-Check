@@ -54,10 +54,12 @@ def privacy_html(support_url: str = DEFAULT_SUPPORT_URL) -> str:
       <p>Data is used only to provide article analysis, explain the result,
       cache recent results, prevent abuse, and maintain the service. Complete
       raw article text is not stored in an application database and is
-      not used to train a model. Analysis results, including short evidence excerpts, may
-      remain in server memory for up to 12 hours. Browser-side cached results
-      expire after 24 hours. Hosting-provider logs follow the provider's
-      configured retention settings.</p>
+      not used to train a model. Results from automatic URL checks, including
+      short evidence excerpts, may remain in service memory for up to 12 hours.
+      Results created from the user-submitted text of an open page are not put
+      in this shared cache. Browser-side cached results expire after 24 hours.
+      Hosting-provider logs follow the provider's configured retention
+      settings.</p>
 
       <h2>Sharing</h2>
       <p>Requests are processed by the service operator and its hosting

@@ -328,6 +328,10 @@ class LocalOnnxDetector:
         with self._load_lock:
             if self.loaded:
                 return
+            if not self.revision or not self.tokenizer_revision:
+                raise ModelUnavailableError(
+                    "Model and tokenizer downloads require pinned revisions."
+                )
             try:
                 import onnxruntime as ort
                 from huggingface_hub import hf_hub_download
@@ -345,7 +349,8 @@ class LocalOnnxDetector:
                 }
                 if self.tokenizer_use_fast is not None:
                     tokenizer_options["use_fast"] = self.tokenizer_use_fast
-                tokenizer = AutoTokenizer.from_pretrained(
+                # Bandit cannot infer the pinned revision stored in this mapping.
+                tokenizer = AutoTokenizer.from_pretrained(  # nosec B615
                     self.tokenizer_repo_id,
                     **tokenizer_options,
                 )

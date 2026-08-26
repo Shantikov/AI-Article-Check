@@ -83,7 +83,7 @@ require downloading benchmark datasets or scoring 1,600 validation texts.
    approximately 126 MB ONNX model.
 2. Double-click `start.cmd` whenever you want to use the extension. Keep the
    window open while Chrome is running checks.
-3. Verify <http://127.0.0.1:8787/health>. It must report version `0.9.5` and
+3. Verify <http://127.0.0.1:8787/health>. It must report version `0.9.6` and
    `"calibrated": true`.
 
 The PowerShell scripts behind those launchers also detect a missing environment,
@@ -460,16 +460,17 @@ backend result cache.
 ### `GET /health`
 
 Returns the API version, active detector mode, model state, and calibration
-state. The extension popup warns when its own version does not match the
-running backend.
+state. These diagnostics are for development and deployment checks; the public
+extension does not expose infrastructure details to ordinary users.
 
 ### `POST /api/v1/analyze/text`
 
 Accepts article text extracted from an explicitly opened browser tab, plus its
 URL, optional canonical URL, title, author flag, and citation flag. It applies
-the same language check, detector, calibration, evidence rules, and cache as URL
-analysis. Text is limited to 80,000 characters and must contain at least 80
-article words.
+the same language check, detector, calibration, and evidence rules as URL
+analysis. Its result is cached only inside that user's extension, preventing
+submitted browser text from replacing the service's shared URL result. Text is
+limited to 80,000 characters and must contain at least 80 article words.
 
 ## Tests
 

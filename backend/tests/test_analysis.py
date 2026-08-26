@@ -145,7 +145,7 @@ async def test_sitewide_captcha_script_does_not_block_real_article(monkeypatch) 
 
 
 @pytest.mark.asyncio
-async def test_browser_text_analysis_is_cached_for_page_and_canonical_url(
+async def test_browser_text_analysis_does_not_poison_shared_url_cache(
     monkeypatch,
 ) -> None:
     monkeypatch.setattr(main, "local_model", None)
@@ -166,10 +166,8 @@ async def test_browser_text_analysis_is_cached_for_page_and_canonical_url(
     assert result.status == "ok"
     assert result.analysis_source == "browser_page"
     assert result.word_count == 120
-    assert page_cached is not None
-    assert canonical_cached is not None
-    assert page_cached.content_fingerprint == result.content_fingerprint
-    assert canonical_cached.content_fingerprint == result.content_fingerprint
+    assert page_cached is None
+    assert canonical_cached is None
 
 
 @pytest.mark.asyncio

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-from collections import defaultdict, deque
+import ipaddress
+import json
+from collections import OrderedDict, deque
 from math import ceil
 from time import monotonic
 
@@ -13,28 +15,49 @@ from starlette.responses import JSONResponse, Response
 class SlidingWindowLimiter:
     """Small per-process request limiter for the public analysis endpoints."""
 
-    def __init__(self, limit: int, window_seconds: int) -> None:
+    def __init__(
+        self,
+        limit: int,
+        window_seconds: int,
+        *,
+        max_client_keys: int = 10_000,
+    ) -> None:
         self.limit = limit
         self.window_seconds = window_seconds
-        self._requests: dict[str, deque[float]] = defaultdict(deque)
+        self.max_client_keys = max(1, max_client_keys)
+        self._requests: OrderedDict[str, deque[float]] = OrderedDict()
         self._lock = asyncio.Lock()
 
-    async def allow(self, key: str, *, now: float | None = None) -> tuple[bool, int]:
+    async def allow(
+        self,
+        key: str,
+        *,
+        cost: int = 1,
+        now: float | None = None,
+    ) -> tuple[bool, int]:
         if self.limit == 0 or self.window_seconds == 0:
             return True, 0
+        cost = max(1, cost)
 
         current = monotonic() if now is None else now
         cutoff = current - self.window_seconds
         async with self._lock:
-            bucket = self._requests[key]
+            bucket = self._requests.setdefault(key, deque())
+            self._requests.move_to_end(key)
             while bucket and bucket[0] <= cutoff:
                 bucket.popleft()
-            if len(bucket) >= self.limit:
-                retry_after = max(1, ceil(bucket[0] + self.window_seconds - current))
+            if len(bucket) + cost > self.limit:
+                retry_after = (
+                    max(1, ceil(bucket[0] + self.window_seconds - current))
+                    if bucket
+                    else self.window_seconds
+                )
+                if not bucket:
+                    self._requests.pop(key, None)
                 return False, retry_after
-            bucket.append(current)
-            if not bucket:
-                self._requests.pop(key, None)
+            bucket.extend([current] * cost)
+            while len(self._requests) > self.max_client_keys:
+                self._requests.popitem(last=False)
         return True, 0
 
 
@@ -54,11 +77,26 @@ class AnalysisRateLimitMiddleware(BaseHTTPMiddleware):
 
     def client_key(self, request: Request) -> str:
         if self.trust_proxy_headers:
-            forwarded = request.headers.get("x-forwarded-for", "")
-            first = forwarded.split(",", 1)[0].strip()
-            if first:
-                return first
+            candidates = [
+                request.headers.get("x-real-ip", "").strip(),
+                request.headers.get("x-forwarded-for", "").split(",", 1)[0].strip(),
+            ]
+            for candidate in candidates:
+                try:
+                    return str(ipaddress.ip_address(candidate))
+                except ValueError:
+                    continue
         return request.client.host if request.client else "unknown"
+
+    async def request_cost(self, request: Request) -> int:
+        if not request.url.path.endswith("/batch"):
+            return 1
+        try:
+            payload = json.loads(await request.body())
+        except (json.JSONDecodeError, TypeError, UnicodeDecodeError):
+            return 1
+        urls = payload.get("urls") if isinstance(payload, dict) else None
+        return min(10, max(1, len(urls))) if isinstance(urls, list) else 1
 
     async def dispatch(
         self,
@@ -72,7 +110,11 @@ class AnalysisRateLimitMiddleware(BaseHTTPMiddleware):
         if not is_analysis:
             return await call_next(request)
 
-        allowed, retry_after = await self.limiter.allow(self.client_key(request))
+        cost = await self.request_cost(request)
+        allowed, retry_after = await self.limiter.allow(
+            self.client_key(request),
+            cost=cost,
+        )
         if not allowed:
             return JSONResponse(
                 status_code=429,

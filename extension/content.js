@@ -3,6 +3,7 @@ const RESULT_SELECTOR = "h3";
 const badgeByAnchor = new WeakMap();
 let scanTimer = null;
 let scanRunning = false;
+let rescanRequested = false;
 let activeDetailsPanel = null;
 let activeDetailsBadge = null;
 
@@ -16,8 +17,8 @@ const LABELS = {
 
 const ERROR_LABELS = {
   access_blocked: "Access blocked",
-  backend_unavailable: "Server offline",
-  detector_unavailable: "Detector offline",
+  backend_unavailable: "Service unavailable",
+  detector_unavailable: "Service unavailable",
   dns_error: "Domain unavailable",
   extension_error: "Extension error",
   http_error: "Site error",
@@ -77,15 +78,26 @@ document.addEventListener("click", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") closeDetailsPanel();
 });
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === "sync" && changes.autoResults) scheduleScan(50);
+});
 
 function scheduleScan(delay) {
+  if (scanRunning) {
+    rescanRequested = true;
+    return;
+  }
   clearTimeout(scanTimer);
   scanTimer = setTimeout(scanResults, delay);
 }
 
 async function scanResults() {
-  if (scanRunning) return;
+  if (scanRunning) {
+    rescanRequested = true;
+    return;
+  }
   scanRunning = true;
+  rescanRequested = false;
   let pending = [];
   try {
     const settings = await chrome.runtime.sendMessage({ type: "GET_SETTINGS" });
@@ -141,6 +153,7 @@ async function scanResults() {
     }
   } finally {
     scanRunning = false;
+    if (rescanRequested) scheduleScan(50);
   }
 }
 
@@ -305,7 +318,7 @@ async function checkSingleResult(badge, force = false) {
 function renderResult(badge, result) {
   const safeResult = result || {
     label: "unavailable",
-    error: "The server returned no result",
+    error: "The analysis service returned no result",
   };
   const label = safeResult.label || "unavailable";
   const segments = resultSegmentCounts(safeResult);
@@ -654,21 +667,21 @@ function appendRecheckButton(panel, badge, label) {
 function errorHelpMessage(errorCode) {
   const messages = {
     access_blocked:
-      "The site refused the backend request. Opening the page in Chrome may still work.",
+      "The site refused the automatic check. Opening the page in Chrome may still work.",
     backend_unavailable:
-      "Start the local backend and keep its window open, then try again.",
+      "The analysis service is temporarily unavailable. Try again shortly.",
     detector_unavailable:
-      "Run setup.cmd to verify the model files, then restart the backend.",
+      "The analysis service is temporarily unavailable. Try again shortly.",
     dns_error:
       "The domain could not be resolved. This may be temporary.",
     extension_error:
       "The browser extension could not complete this request. Reload it and try again.",
     http_error:
-      "The website returned an HTTP response that the backend could not analyze.",
+      "The website returned a response that could not be analyzed.",
     http_access_blocked:
-      "The site explicitly refused the backend request with HTTP 401 or 403.",
+      "The site refused the automatic check. Open the article and use Analyze this page.",
     internal_error:
-      "The backend hit an unexpected analysis error. Restart it before retrying.",
+      "The analysis service hit an unexpected error. Try again shortly.",
     invalid_response:
       "The website returned a malformed or incomplete response.",
     invalid_url:
@@ -676,13 +689,13 @@ function errorHelpMessage(errorCode) {
     javascript_required:
       "The downloaded HTML contains only an app shell; the article appears after browser scripts run.",
     network_error:
-      "The backend could not establish a connection to the website.",
+      "The analysis service could not connect to the website.",
     non_html:
       "The link returned a file or another unsupported content type instead of an HTML article.",
     page_not_found:
       "The link returned a permanent not-found response.",
     private_address:
-      "Private and local network addresses are blocked for backend safety.",
+      "Private and local network addresses cannot be checked automatically.",
     rate_limited:
       "The site is temporarily limiting requests. Wait briefly before retrying.",
     restricted_content:
@@ -690,14 +703,14 @@ function errorHelpMessage(errorCode) {
     server_error:
       "The website returned a temporary server-side error.",
     timeout:
-      "The website did not respond within the backend time limit.",
+      "The website did not respond in time.",
     too_many_redirects:
       "The website redirected repeatedly without reaching an article page.",
     too_little_text:
       "The page loaded, but it did not expose enough article text for a reliable check.",
   };
   return messages[errorCode]
-    || "The page could not be checked with the current backend response.";
+    || "The page could not be checked with the current service response.";
 }
 
 function appendDetailsSection(panel, title, reasons) {
@@ -760,7 +773,7 @@ function detailedResultSummary(result) {
     return `None of the ${segments.checked} checked text samples were AI-like.`;
   }
   if (!segments.checked) {
-    return "No model samples were available; only direct page indicators were checked.";
+    return "No usable writing samples were available; only direct page indicators were checked.";
   }
   if (segments.checked && segments.ai === segments.checked && segments.checked < 3) {
     return `Only ${segments.checked} usable sample${segments.checked === 1 ? " was" : "s were"} available; at least 3 agreeing samples are required.`;
@@ -771,13 +784,13 @@ function detailedResultSummary(result) {
 function detailedEvidenceMessage(reason) {
   const aiSampleMatch = reason.match(/^(\d+) of (\d+) text samples were AI-like\.$/i);
   if (aiSampleMatch) {
-    return `${aiSampleMatch[1]} independently checked article samples crossed the model's published decision boundary.`;
+    return `${aiSampleMatch[1]} independently checked article samples showed AI-like writing patterns.`;
   }
   const nonAiSampleMatch = reason.match(
     /^(\d+) of (\d+) text samples were not AI-like\.$/i,
   );
   if (nonAiSampleMatch) {
-    return `${nonAiSampleMatch[1]} independently checked article samples stayed below the model's published decision boundary.`;
+    return `${nonAiSampleMatch[1]} independently checked article samples showed more human-like writing patterns.`;
   }
   const explanations = {
     "Page discloses AI use.":

@@ -26,14 +26,16 @@ FETCH_MAX_RETRIES=0
 FETCH_CONCURRENCY=6
 INFERENCE_BATCH_SIZE=14
 INFERENCE_BATCH_WAIT_MS=40
-ALLOWED_EXTENSION_IDS=
+TRUST_PROXY_HEADERS=true
 ```
 
 The hosting service must terminate HTTPS. Do not expose the container directly
-over plain HTTP. Keep `TRUST_PROXY_HEADERS=false` unless the service documents
-that it removes client-supplied forwarding headers before adding its own. The
-built-in rate limiter is per running container; configure an additional
-platform-level quota before scaling to multiple instances.
+over plain HTTP. Railway supplies a validated `X-Real-IP` header, so its
+deployment should use `TRUST_PROXY_HEADERS=true`. Keep the setting false on
+other hosts unless they document that their proxy replaces client-supplied
+forwarding headers. The built-in rate limiter is per running container;
+configure an additional platform-level quota before scaling to multiple
+instances.
 
 `INFERENCE_BATCH_SIZE=14` is the safe default for the 1 GB Railway trial
 container. It does not reduce the six checked sites or the seven samples kept
@@ -43,8 +45,7 @@ extension update is required. Performance log lines contain only stage timings,
 batch sizes, and status values; they do not contain URLs or article text.
 
 Open `https://YOUR_API/health`. A production response contains only the status
-and API version. Keep the service private or in a staging environment until the
-store extension ID is known.
+and API version.
 
 ## 2. Build the store extension
 
@@ -59,15 +60,12 @@ only the deployed API origin, and its API address is fixed at build time. The
 local `127.0.0.1` build is generated separately and remains unchanged.
 
 Upload the store ZIP as a draft in the Chrome Web Store developer dashboard.
-After Google assigns the extension ID, set it on the backend:
-
-```text
-ALLOWED_EXTENSION_IDS=abcdefghijklmnopqrstuvwxyzabcdef
-```
-
-For an unpacked staging build, add its ID to the same comma-separated value.
-Restart/redeploy the backend, then test URL analysis, manual page analysis,
-rate-limit errors, and all Google result controls.
+Chrome extension service workers use the exact API origin declared in
+`host_permissions`, so the permanent extension ID is not required for normal
+API requests. `ALLOWED_EXTENSION_IDS` is an optional CORS response setting for
+browser-page integrations; it is not authentication or abuse protection. Test
+URL analysis, manual page analysis, rate-limit errors, and all Google result
+controls with the final ZIP before submission.
 
 ## 3. Release checklist
 
@@ -75,7 +73,6 @@ rate-limit errors, and all Google result controls.
 - complete the listing text and permission declarations from `STORE_LISTING.md`;
 - add at least one real 1280x800 screenshot; the owned icons and promotional
   tile are already included under `store-assets`;
-- verify the exact production extension ID in `ALLOWED_EXTENSION_IDS`;
 - verify that no local API address appears in the store ZIP;
 - configure hosting logs and retention to match the published privacy policy;
 - set platform budgets, request quotas, health monitoring, and abuse protection;
