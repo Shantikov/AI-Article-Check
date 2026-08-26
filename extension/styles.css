@@ -255,6 +255,16 @@
   overflow-wrap: anywhere;
 }
 
+.acs-details-excerpt {
+  border-left: 3px solid #dadce0;
+  color: #5f6368;
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 7px 0 0;
+  overflow-wrap: anywhere;
+  padding-left: 8px;
+}
+
 .acs-details-empty {
   color: #5f6368;
 }
@@ -327,6 +337,7 @@
   .acs-details-rule { color: #bdc1c6; }
   .acs-details-reason { background: #303134; }
   .acs-details-rule { background: #263750; }
+  .acs-details-excerpt { border-color: #5f6368; color: #bdc1c6; }
   .acs-details-recheck { background: #8ab4f8; color: #202124; }
   .acs-details-recheck:hover,
   .acs-details-recheck:focus-visible { background: #aecbfa; }

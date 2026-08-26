@@ -430,34 +430,56 @@ function collectEvidenceGroups(result) {
   const evidence = result.evidence || [];
   const ai = evidence
     .filter((item) => ["strong", "weak"].includes(item.kind))
-    .map((item) => conciseEvidenceMessage(item.message));
+    .map(normalizeEvidenceItem)
+    .filter((item) => item.message);
   const human = evidence
     .filter((item) => item.kind === "human")
-    .map((item) => conciseEvidenceMessage(item.message));
+    .map(normalizeEvidenceItem)
+    .filter((item) => item.message);
   const notes = evidence
     .filter((item) => item.kind === "info")
-    .map((item) => conciseEvidenceMessage(item.message))
-    .filter(Boolean);
+    .map(normalizeEvidenceItem)
+    .filter((item) => item.message);
 
   const oldModelNote = evidence.some((item) =>
     /local.*(?:onnx|model).*analy/i.test(item.message || "")
   );
   if (oldModelNote && legacyProbability >= 72) {
-    ai.unshift("AI-like writing patterns.");
+    ai.unshift({ message: "AI-like writing patterns.", detail: "", excerpt: "" });
   } else if (oldModelNote && legacyProbability <= 28) {
-    human.unshift("Human-like writing patterns.");
+    human.unshift({ message: "Human-like writing patterns.", detail: "", excerpt: "" });
   }
 
   return {
-    ai: [...new Set(ai.filter(Boolean))],
-    human: [...new Set(human.filter(Boolean))],
-    notes: [...new Set(notes.filter(Boolean))],
+    ai: uniqueEvidenceItems(ai),
+    human: uniqueEvidenceItems(human),
+    notes: uniqueEvidenceItems(notes),
   };
 }
 
 function formatReasonSection(reasons, limit = 3) {
-  const unique = [...new Set(reasons.filter(Boolean))].slice(0, limit);
-  return unique.length ? unique.map((reason) => `• ${reason}`) : ["• None found"];
+  const unique = uniqueEvidenceItems(reasons).slice(0, limit);
+  return unique.length
+    ? unique.map((reason) => `• ${reason.message}`)
+    : ["• None found"];
+}
+
+function normalizeEvidenceItem(item) {
+  return {
+    message: conciseEvidenceMessage(item?.message),
+    detail: String(item?.detail || "").trim(),
+    excerpt: String(item?.excerpt || "").trim(),
+  };
+}
+
+function uniqueEvidenceItems(items) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = `${item.message}\n${item.excerpt}`;
+    if (!item.message || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function conciseEvidenceMessage(message) {
@@ -700,10 +722,16 @@ function appendDetailsSection(panel, title, reasons) {
       const item = document.createElement("div");
       item.className = "acs-details-reason";
       const reasonTitle = document.createElement("strong");
-      reasonTitle.textContent = reason;
+      reasonTitle.textContent = reason.message;
       const explanation = document.createElement("p");
-      explanation.textContent = detailedEvidenceMessage(reason);
+      explanation.textContent = reason.detail || detailedEvidenceMessage(reason.message);
       item.append(reasonTitle, explanation);
+      if (reason.excerpt) {
+        const excerpt = document.createElement("blockquote");
+        excerpt.className = "acs-details-excerpt";
+        excerpt.textContent = `“${reason.excerpt}”`;
+        item.append(excerpt);
+      }
       list.append(item);
     }
   }

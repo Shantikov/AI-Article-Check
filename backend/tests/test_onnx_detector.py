@@ -64,6 +64,10 @@ def test_detector_counts_ai_votes_from_second_logit() -> None:
     assert result.non_ai_segments == 0
     assert result.evidence[0].kind == "weak"
     assert result.evidence[0].message == "5 of 5 text samples were AI-like."
+    assert result.evidence[1].message == "Strongest AI-like sample: the beginning."
+    assert result.evidence[1].detail
+    assert result.evidence[1].excerpt
+    assert len(result.evidence[1].excerpt) <= 181
     assert result.ai_probability is None
     assert "confidence" not in result.model_dump()
 
@@ -97,6 +101,18 @@ def test_mixed_sample_votes_remain_uncertain() -> None:
     assert result.label == "uncertain"
     assert result.ai_segments == 3
     assert result.non_ai_segments == 2
+    ai_passage = next(
+        item for item in result.evidence
+        if item.message.startswith("Strongest AI-like sample:")
+    )
+    human_passage = next(
+        item for item in result.evidence
+        if item.message.startswith("Strongest human-like sample:")
+    )
+    assert ai_passage.message == "Strongest AI-like sample: the beginning."
+    assert human_passage.message == "Strongest human-like sample: the beginning."
+    assert ai_passage.excerpt
+    assert human_passage.excerpt
 
 
 def test_one_ai_like_sample_is_not_enough_for_strong_result() -> None:

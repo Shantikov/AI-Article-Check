@@ -144,6 +144,15 @@ button, input, select {
 }
 .evidence-item strong { display: block; font-size: 11px; }
 .evidence-item p { color: #5f6368; line-height: 1.35; margin: 3px 0 0; }
+.evidence-excerpt {
+  border-left: 3px solid #dadce0;
+  color: #5f6368;
+  font-size: 10px;
+  line-height: 1.4;
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+  padding-left: 7px;
+}
 .evidence-empty { color: #5f6368; margin: 0; }
 
 .quick-setting {
@@ -181,6 +190,7 @@ button, input, select {
   .analysis-details { border-color: #5f6368; }
   .analysis-metric, .evidence-item { background: #202124; }
   .analysis-metric span, .evidence-item p, .evidence-empty { color: #bdc1c6; }
+  .evidence-excerpt { border-color: #5f6368; color: #bdc1c6; }
   .page-result-loading { background: #182b49; color: #8ab4f8; }
   .page-result-ai, .page-result-error { background: #3c1515; color: #f6aea9; }
   .page-result-human { background: #12351f; color: #81c995; }

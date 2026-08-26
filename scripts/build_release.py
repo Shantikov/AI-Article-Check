@@ -161,12 +161,18 @@ def main() -> None:
     version = extension_version()
     production_path = DIST / f"AI-Article-Check-{version}.zip"
     development_path = DIST / f"AI-Article-Check-{version}-dev.zip"
+    source_path = DIST / f"AI-Article-Check-{version}-source.zip"
+    github_update_path = DIST / f"AI-Article-Check-{version}-GitHub-update.zip"
     backend_path = DIST / f"AI-Article-Check-{version}-backend.zip"
     write_zip(production_path, production_files())
     write_zip(development_path, development_files())
+    write_zip(source_path, development_files())
+    write_zip(github_update_path, development_files())
     write_zip(backend_path, backend_deployment_files())
     print(f"Production archive: {production_path}")
     print(f"Development archive: {development_path}")
+    print(f"Source archive: {source_path}")
+    print(f"GitHub update archive: {github_update_path}")
     print(f"Backend deployment archive: {backend_path}")
     if args.public_api_base:
         store_path = DIST / f"AI-Article-Check-{version}-store.zip"

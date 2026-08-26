@@ -200,10 +200,16 @@ function appendEvidenceSection(title, reasons) {
       const item = document.createElement("li");
       item.className = "evidence-item";
       const reasonTitle = document.createElement("strong");
-      reasonTitle.textContent = reason;
+      reasonTitle.textContent = reason.message;
       const explanation = document.createElement("p");
-      explanation.textContent = detailedEvidenceMessage(reason);
+      explanation.textContent = reason.detail || detailedEvidenceMessage(reason.message);
       item.append(reasonTitle, explanation);
+      if (reason.excerpt) {
+        const excerpt = document.createElement("blockquote");
+        excerpt.className = "evidence-excerpt";
+        excerpt.textContent = `“${reason.excerpt}”`;
+        item.append(excerpt);
+      }
       list.append(item);
     }
     section.append(list);
@@ -223,15 +229,33 @@ function resultSegmentCounts(result) {
 
 function collectEvidenceGroups(result) {
   const evidence = Array.isArray(result.evidence) ? result.evidence : [];
-  const group = (kinds) => [...new Set(evidence
+  const group = (kinds) => uniqueEvidenceItems(evidence
     .filter((item) => kinds.includes(item?.kind))
-    .map((item) => conciseEvidenceMessage(item?.message))
-    .filter(Boolean))];
+    .map(normalizeEvidenceItem)
+    .filter((item) => item.message));
   return {
     ai: group(["strong", "weak"]),
     human: group(["human"]),
     notes: group(["info"]),
   };
+}
+
+function normalizeEvidenceItem(item) {
+  return {
+    message: conciseEvidenceMessage(item?.message),
+    detail: String(item?.detail || "").trim(),
+    excerpt: String(item?.excerpt || "").trim(),
+  };
+}
+
+function uniqueEvidenceItems(items) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = `${item.message}\n${item.excerpt}`;
+    if (!item.message || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function conciseEvidenceMessage(message) {

@@ -69,7 +69,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="AI Article Check API",
-    version="0.9.2",
+    version="0.9.3",
     lifespan=lifespan,
 )
 app.add_middleware(

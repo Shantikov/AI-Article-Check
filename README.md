@@ -24,6 +24,8 @@ runs an English AI-text classifier locally on the backend computer.
 - groups short tooltip reasons into evidence for and against AI authorship;
 - opens a detailed evidence card with an explanation for every signal when a
   completed badge is clicked;
+- identifies the strongest AI-like and human-like sampled passages, shows where
+  they occur in the article, and includes short source excerpts;
 - uses the pinned TMR ONNX detector selected through offline benchmark testing;
 - uses separate probability curves and decision limits for pages yielding 1,
   2, or 3+ text samples;
@@ -79,7 +81,7 @@ require downloading benchmark datasets or scoring 1,600 validation texts.
    approximately 126 MB ONNX model.
 2. Double-click `start.cmd` whenever you want to use the extension. Keep the
    window open while Chrome is running checks.
-3. Verify <http://127.0.0.1:8787/health>. It must report version `0.9.2` and
+3. Verify <http://127.0.0.1:8787/health>. It must report version `0.9.3` and
    `"calibrated": true`.
 
 The PowerShell scripts behind those launchers also detect a missing environment,

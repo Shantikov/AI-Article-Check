@@ -88,6 +88,25 @@ def sample_text_chunks(
     return chunks
 
 
+def _sample_position(index: int, total: int) -> str:
+    if total <= 1:
+        return "the available text"
+    relative_position = index / (total - 1)
+    if relative_position < 1 / 3:
+        return "the beginning"
+    if relative_position > 2 / 3:
+        return "the end"
+    return "the middle"
+
+
+def _evidence_excerpt(text: str, max_chars: int = 180) -> str:
+    compact = " ".join(text.split())
+    if len(compact) <= max_chars:
+        return compact
+    shortened = compact[: max_chars + 1].rsplit(" ", 1)[0].rstrip(" ,;:-")
+    return f"{shortened}…"
+
+
 class LocalOnnxDetector:
     """Lazy local inference for compatible English ONNX text classifiers."""
 
@@ -167,6 +186,43 @@ class LocalOnnxDetector:
                     f"{non_ai_segments} of {segments_checked} text samples "
                     "were not AI-like."
                 ),
+            ))
+        if ai_segments:
+            strongest_ai_index = max(range(segments_checked), key=scores.__getitem__)
+            strongest_ai_position = _sample_position(
+                strongest_ai_index,
+                segments_checked,
+            )
+            evidence.append(Evidence(
+                kind="weak",
+                message=f"Strongest AI-like sample: {strongest_ai_position}.",
+                detail=(
+                    "This passage received the highest raw AI-pattern score among "
+                    f"the {segments_checked} independently checked samples. The raw "
+                    "score is used for comparison here, not presented as proof of "
+                    "authorship."
+                ),
+                excerpt=_evidence_excerpt(chunks[strongest_ai_index]),
+            ))
+        if non_ai_segments:
+            strongest_human_index = min(range(segments_checked), key=scores.__getitem__)
+            strongest_human_position = _sample_position(
+                strongest_human_index,
+                segments_checked,
+            )
+            evidence.append(Evidence(
+                kind="human",
+                message=(
+                    "Strongest human-like sample: "
+                    f"{strongest_human_position}."
+                ),
+                detail=(
+                    "This passage received the lowest raw AI-pattern score among "
+                    f"the {segments_checked} independently checked samples. It is "
+                    "the clearest counter-signal found by the model, not proof of "
+                    "human authorship."
+                ),
+                excerpt=_evidence_excerpt(chunks[strongest_human_index]),
             ))
         if self.calibration and label == "uncertain":
             if self.calibration.needs_more_samples(ai_probability, segments_checked):

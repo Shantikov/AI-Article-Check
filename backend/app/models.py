@@ -25,6 +25,8 @@ class BatchAnalyzeRequest(BaseModel):
 class Evidence(BaseModel):
     kind: Literal["strong", "weak", "human", "info"]
     message: str
+    detail: str | None = Field(default=None, max_length=600)
+    excerpt: str | None = Field(default=None, max_length=240)
 
 
 class AnalysisResult(BaseModel):
