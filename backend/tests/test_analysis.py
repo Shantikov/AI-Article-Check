@@ -217,6 +217,7 @@ def test_public_privacy_page_is_available() -> None:
     assert response.headers["content-type"].startswith("text/html")
     assert "AI Article Check privacy policy" in response.text
     assert "not used to train a" in response.text
+    assert "short evidence excerpts" in response.text
     assert "[contact email]" not in response.text
 
 

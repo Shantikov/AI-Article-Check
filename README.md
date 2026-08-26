@@ -16,6 +16,8 @@ runs an English AI-text classifier locally on the backend computer.
 - checks the first 6 results automatically on the first search page by default;
 - fetches those pages concurrently and displays each result as soon as it is
   ready, without waiting for the slowest site;
+- coalesces nearby article checks into bounded ONNX micro-batches without
+  reducing the number of sites or text samples analyzed;
 - uses only **Check for AI** buttons on page 2 and later search pages;
 - adds a **Check for AI** button to later results for on-demand analysis;
 - can analyze the rendered article in the currently open tab when direct
@@ -81,7 +83,7 @@ require downloading benchmark datasets or scoring 1,600 validation texts.
    approximately 126 MB ONNX model.
 2. Double-click `start.cmd` whenever you want to use the extension. Keep the
    window open while Chrome is running checks.
-3. Verify <http://127.0.0.1:8787/health>. It must report version `0.9.3` and
+3. Verify <http://127.0.0.1:8787/health>. It must report version `0.9.4` and
    `"calibrated": true`.
 
 The PowerShell scripts behind those launchers also detect a missing environment,
@@ -365,9 +367,13 @@ conservative decision limits. Explicit AI
 disclosures and obvious leaked chatbot phrases remain direct evidence. See
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for attribution.
 
-The server processes at most two articles concurrently. This keeps the default
-six-result automatic scan responsive without allowing one search page to start
-too many simultaneous model runs.
+Nearby article requests are coalesced for 40 milliseconds and scored in bounded
+ONNX micro-batches. The default batch contains at most 14 text samples, matching
+the former peak of two simultaneous seven-sample article runs while avoiding
+duplicated tokenizer and inference overhead. Every article still keeps all of
+its sampled text, and completed articles are released as soon as their own
+scores are ready. `INFERENCE_BATCH_SIZE` can be raised on a larger hosting plan
+without rebuilding the extension.
 
 ## Model comparison protocol
 

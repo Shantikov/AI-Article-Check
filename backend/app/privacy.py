@@ -43,17 +43,21 @@ def privacy_html(support_url: str = DEFAULT_SUPPORT_URL) -> str:
         URL, title, and simple author or citation indicators.</li>
         <li>The extension stores recent results locally in Chrome and stores the
         selected automatic-check count in Chrome sync storage.</li>
+        <li>Results can include short excerpts from the highest-scoring and
+        lowest-scoring article samples so the user can inspect the text behind
+        those comparative signals.</li>
         <li>The hosting provider may process IP addresses and standard request
         metadata for delivery, security, rate limiting, and operational logs.</li>
       </ul>
 
       <h2>Purpose and retention</h2>
       <p>Data is used only to provide article analysis, explain the result,
-      cache recent results, prevent abuse, and maintain the service. Raw article
-      text is not stored in an application database and is not used to train a
-      model. Analysis results may remain in server memory for up to 12 hours.
-      Browser-side cached results expire after 24 hours. Hosting-provider logs
-      follow the provider's configured retention settings.</p>
+      cache recent results, prevent abuse, and maintain the service. Complete
+      raw article text is not stored in an application database and is
+      not used to train a model. Analysis results, including short evidence excerpts, may
+      remain in server memory for up to 12 hours. Browser-side cached results
+      expire after 24 hours. Hosting-provider logs follow the provider's
+      configured retention settings.</p>
 
       <h2>Sharing</h2>
       <p>Requests are processed by the service operator and its hosting

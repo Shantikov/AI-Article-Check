@@ -1,5 +1,8 @@
 # Chrome Web Store listing draft
 
+The complete copy-and-paste dashboard fields, privacy declarations, reviewer
+instructions, and screenshot plan are in [CWS_SUBMISSION.md](CWS_SUBMISSION.md).
+
 ## Name
 
 AI Article Check

@@ -42,13 +42,19 @@ def test_fast_batch_defaults_keep_network_and_inference_limits_separate() -> Non
     assert settings.fetch_timeout_seconds == 8.0
     assert settings.fetch_max_retries == 0
     assert settings.fetch_concurrency == 6
-    assert settings.inference_concurrency == 2
+    assert settings.inference_batch_size == 14
+    assert settings.inference_batch_wait_ms == 40
 
 
-@pytest.mark.parametrize("field", ["fetch_concurrency", "inference_concurrency"])
+@pytest.mark.parametrize("field", ["fetch_concurrency", "inference_batch_size"])
 def test_concurrency_must_be_positive(field: str) -> None:
     with pytest.raises(ValueError):
         Settings(**{field: 0})
+
+
+def test_inference_batch_wait_must_not_be_negative() -> None:
+    with pytest.raises(ValueError):
+        Settings(inference_batch_wait_ms=-1)
 
 
 @pytest.mark.asyncio

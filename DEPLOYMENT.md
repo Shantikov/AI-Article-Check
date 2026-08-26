@@ -24,7 +24,8 @@ RATE_LIMIT_WINDOW_SECONDS=60
 FETCH_TIMEOUT_SECONDS=8
 FETCH_MAX_RETRIES=0
 FETCH_CONCURRENCY=6
-INFERENCE_CONCURRENCY=2
+INFERENCE_BATCH_SIZE=14
+INFERENCE_BATCH_WAIT_MS=40
 ALLOWED_EXTENSION_IDS=
 ```
 
@@ -33,6 +34,13 @@ over plain HTTP. Keep `TRUST_PROXY_HEADERS=false` unless the service documents
 that it removes client-supplied forwarding headers before adding its own. The
 built-in rate limiter is per running container; configure an additional
 platform-level quota before scaling to multiple instances.
+
+`INFERENCE_BATCH_SIZE=14` is the safe default for the 1 GB Railway trial
+container. It does not reduce the six checked sites or the seven samples kept
+per article; it only splits a larger queue into bounded ONNX runs. After moving
+to a larger Hobby container, set `INFERENCE_BATCH_SIZE=42` and redeploy. No
+extension update is required. Performance log lines contain only stage timings,
+batch sizes, and status values; they do not contain URLs or article text.
 
 Open `https://YOUR_API/health`. A production response contains only the status
 and API version. Keep the service private or in a staging environment until the

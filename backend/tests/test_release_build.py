@@ -64,10 +64,23 @@ def test_store_extension_has_fixed_https_api_and_minimal_host_access() -> None:
     assert "icons/icon48.png" in files
     assert "icons/icon128.png" in files
     assert manifest["host_permissions"] == ["https://api.example.com/*"]
+    assert manifest["permissions"] == ["activeTab", "scripting", "storage"]
     assert "optional_host_permissions" not in manifest
     assert 'const BUILD_MODE = "public";' in background
     assert 'apiBase: "https://api.example.com/v1",' in background
     assert "127.0.0.1" not in background
+    packaged_code = "\n".join(
+        files[name].decode("utf-8")
+        for name in ("background.js", "content.js", "popup.js")
+    )
+    assert "eval(" not in packaged_code
+    assert "new Function(" not in packaged_code
+
+
+def test_submission_guide_is_in_source_but_not_store_package() -> None:
+    assert "CWS_SUBMISSION.md" in build_release.development_files()
+    files = build_release.store_extension_files("https://api.example.com")
+    assert "CWS_SUBMISSION.md" not in files
 
 
 @pytest.mark.parametrize(

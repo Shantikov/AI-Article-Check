@@ -18,6 +18,9 @@ and its hosted analysis service. The public copy is available at
 - The extension stores analysis results and their expiration times in Chrome's
   local extension storage. It stores the selected auto-check count in Chrome
   sync storage.
+- Analysis results can include short excerpts from the highest-scoring and
+  lowest-scoring article samples so the user can inspect the specific text
+  behind those comparative signals.
 - The API host may process an IP address and standard request metadata for
   delivery, security, rate limiting, and operational logs.
 
@@ -25,9 +28,10 @@ and its hosted analysis service. The public copy is available at
 
 The data is used only to provide article analysis, return an explanation, cache
 recent results, prevent abuse, and maintain the service. The application does
-not persist raw article text in its own database. Analysis results are cached in
-server memory for up to 12 hours by default and disappear when that process is
-restarted. Browser-side cached results expire after 24 hours.
+not persist complete raw article text in its own database. Analysis results,
+including any short evidence excerpts, are cached in server memory for up to 12
+hours by default and disappear when that process is restarted. Browser-side
+cached results expire after 24 hours.
 
 Hosting-provider logs follow the provider's configured retention settings. The
 extension does not sell personal data, use article content for advertising, or

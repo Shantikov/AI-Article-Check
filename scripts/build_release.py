@@ -12,6 +12,7 @@ DIST = ROOT / "dist"
 FIXED_ZIP_DATE = (2026, 8, 26, 0, 0, 0)
 
 ROOT_FILES = {
+    "CWS_SUBMISSION.md",
     "DEPLOYMENT.md",
     "LICENSE",
     "PRIVACY.md",

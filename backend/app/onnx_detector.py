@@ -154,6 +154,17 @@ class LocalOnnxDetector:
     def analyze(self, text: str) -> DetectorOutput:
         chunks = sample_text_chunks(text)
         scores = self.score_chunks(chunks)
+        return self.build_output(chunks, scores)
+
+    def build_output(
+        self,
+        chunks: list[str],
+        scores: list[float],
+    ) -> DetectorOutput:
+        if not chunks or len(chunks) != len(scores):
+            raise ModelUnavailableError(
+                "Local ONNX inference returned incomplete sample scores."
+            )
         segments_checked = len(scores)
         ai_segments = sum(score > 0.5 for score in scores)
         non_ai_segments = segments_checked - ai_segments

@@ -28,7 +28,8 @@ class Settings(BaseSettings):
     fetch_timeout_seconds: float = 8.0
     fetch_max_retries: int = 0
     fetch_concurrency: int = 6
-    inference_concurrency: int = 2
+    inference_batch_size: int = 14
+    inference_batch_wait_ms: int = 40
     local_model_enabled: bool = True
     local_model_id: str = "onnx-community/tmr-ai-text-detector-ONNX"
     local_model_filename: str = "onnx/model_int8.onnx"
@@ -52,11 +53,18 @@ class Settings(BaseSettings):
             raise ValueError("FETCH_MAX_RETRIES must not be negative")
         return value
 
-    @field_validator("fetch_concurrency", "inference_concurrency")
+    @field_validator("fetch_concurrency", "inference_batch_size")
     @classmethod
     def validate_positive_concurrency(cls, value: int) -> int:
         if value < 1:
-            raise ValueError("Concurrency settings must be at least 1")
+            raise ValueError("Concurrency and batch settings must be at least 1")
+        return value
+
+    @field_validator("inference_batch_wait_ms")
+    @classmethod
+    def validate_non_negative_batch_wait(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError("Inference batch wait must not be negative")
         return value
 
     @field_validator("allowed_extension_ids")

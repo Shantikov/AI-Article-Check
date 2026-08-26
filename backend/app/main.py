@@ -1,6 +1,8 @@
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+import logging
+from time import perf_counter
 from typing import Literal
 
 from fastapi import FastAPI
@@ -22,6 +24,7 @@ from .extractor import (
     extract_article,
 )
 from .fetcher import FetchError, canonicalize_url, fetch_html
+from .inference_batcher import InferenceBatcher
 from .models import (
     AnalysisResult,
     AnalyzeTextRequest,
@@ -36,6 +39,8 @@ from .rate_limit import AnalysisRateLimitMiddleware
 
 
 settings = get_settings()
+performance_logger = logging.getLogger("ai_article_check.performance")
+performance_logger.setLevel(logging.INFO)
 cache = ResultCache(settings.cache_ttl_seconds)
 external_detector = (
     ExternalDetector(
@@ -57,7 +62,15 @@ local_model = (
     else None
 )
 fetch_semaphore = asyncio.Semaphore(settings.fetch_concurrency)
-inference_semaphore = asyncio.Semaphore(settings.inference_concurrency)
+inference_batcher = (
+    InferenceBatcher(
+        local_model,
+        max_batch_chunks=settings.inference_batch_size,
+        wait_ms=settings.inference_batch_wait_ms,
+    )
+    if local_model
+    else None
+)
 
 
 @asynccontextmanager
@@ -69,7 +82,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="AI Article Check API",
-    version="0.9.3",
+    version="0.9.4",
     lifespan=lifespan,
 )
 app.add_middleware(
@@ -90,6 +103,33 @@ app.add_middleware(
 
 def now_iso() -> str:
     return datetime.now(UTC).isoformat()
+
+
+def elapsed_ms(started: float) -> int:
+    return round((perf_counter() - started) * 1_000)
+
+
+def log_analysis_timing(
+    *,
+    source: str,
+    status: str,
+    total_ms: int,
+    fetch_ms: int | None = None,
+    extraction_ms: int | None = None,
+    analysis_ms: int | None = None,
+) -> None:
+    performance_logger.info(
+        (
+            "analysis_timing source=%s status=%s total_ms=%d fetch_ms=%d "
+            "extraction_ms=%d analysis_ms=%d"
+        ),
+        source,
+        status,
+        total_ms,
+        -1 if fetch_ms is None else fetch_ms,
+        -1 if extraction_ms is None else extraction_ms,
+        -1 if analysis_ms is None else analysis_ms,
+    )
 
 
 async def analyze_article(
@@ -128,11 +168,10 @@ async def analyze_article(
     detector_output = analyze_heuristically(article)
     if local_model:
         try:
-            async with inference_semaphore:
-                model_output = await asyncio.to_thread(
-                    local_model.analyze,
-                    article.text,
-                )
+            if inference_batcher and inference_batcher.detector is local_model:
+                model_output = await inference_batcher.analyze(article.text)
+            else:
+                model_output = await asyncio.to_thread(local_model.analyze, article.text)
             detector_output = combine_with_local_model(
                 detector_output,
                 model_output,
@@ -199,10 +238,11 @@ async def analyze_article(
 
 
 async def analyze_url(raw_url: str, *, force: bool = False) -> AnalysisResult:
+    total_started = perf_counter()
     try:
         cache_key = canonicalize_url(raw_url)
     except FetchError as exc:
-        return AnalysisResult(
+        result = AnalysisResult(
             url=raw_url,
             status="error",
             label="unavailable",
@@ -211,14 +251,30 @@ async def analyze_url(raw_url: str, *, force: bool = False) -> AnalysisResult:
             retryable=exc.retryable,
             analyzed_at=now_iso(),
         )
+        log_analysis_timing(
+            source="backend_fetch",
+            status=result.status,
+            total_ms=elapsed_ms(total_started),
+        )
+        return result
 
     if not force:
         cached = await cache.get(cache_key)
         if cached:
-            return cached.model_copy(update={"url": raw_url})
+            result = cached.model_copy(update={"url": raw_url})
+            log_analysis_timing(
+                source="server_cache",
+                status=result.status,
+                total_ms=elapsed_ms(total_started),
+            )
+            return result
 
     final_url: str | None = None
+    fetch_ms: int | None = None
+    extraction_ms: int | None = None
+    analysis_ms: int | None = None
     try:
+        fetch_started = perf_counter()
         async with fetch_semaphore:
             page = await fetch_html(
                 cache_key,
@@ -226,7 +282,9 @@ async def analyze_url(raw_url: str, *, force: bool = False) -> AnalysisResult:
                 max_bytes=settings.max_download_bytes,
                 max_retries=settings.fetch_max_retries,
             )
+        fetch_ms = elapsed_ms(fetch_started)
         final_url = page.final_url
+        extraction_started = perf_counter()
         article = extract_article(page.html)
         failure = diagnose_extraction_failure(
             page.html,
@@ -238,12 +296,15 @@ async def analyze_url(raw_url: str, *, force: bool = False) -> AnalysisResult:
                 code=failure.code,
                 retryable=failure.retryable,
             )
+        extraction_ms = elapsed_ms(extraction_started)
+        analysis_started = perf_counter()
         result = await analyze_article(
             raw_url,
             final_url=page.final_url,
             article=article,
             content_truncated=page.truncated,
         )
+        analysis_ms = elapsed_ms(analysis_started)
     except FetchError as exc:
         result = AnalysisResult(
             url=raw_url,
@@ -268,10 +329,19 @@ async def analyze_url(raw_url: str, *, force: bool = False) -> AnalysisResult:
 
     if result.status == "ok":
         await cache.set(cache_key, result)
+    log_analysis_timing(
+        source="backend_fetch",
+        status=result.status,
+        total_ms=elapsed_ms(total_started),
+        fetch_ms=fetch_ms,
+        extraction_ms=extraction_ms,
+        analysis_ms=analysis_ms,
+    )
     return result
 
 
 async def analyze_browser_text(request: AnalyzeTextRequest) -> AnalysisResult:
+    total_started = perf_counter()
     try:
         cache_key = canonicalize_url(request.url)
         canonical_key = (
@@ -347,6 +417,12 @@ async def analyze_browser_text(request: AnalyzeTextRequest) -> AnalysisResult:
     if result.status == "ok":
         for key in {cache_key, canonical_key}:
             await cache.set(key, result)
+    log_analysis_timing(
+        source="browser_page",
+        status=result.status,
+        total_ms=elapsed_ms(total_started),
+        analysis_ms=elapsed_ms(total_started),
+    )
     return result
 
 
