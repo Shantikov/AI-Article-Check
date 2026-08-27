@@ -8,6 +8,7 @@ from typing import Literal
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from starlette.middleware.body_limit import RequestBodyLimitMiddleware
 
 from .cache import ResultCache
 from .config import get_settings
@@ -82,13 +83,18 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="AI Article Check API",
-    version="0.9.6",
+    version="0.9.7",
     lifespan=lifespan,
+    openapi_url=None if settings.app_environment == "production" else "/openapi.json",
+    docs_url=None if settings.app_environment == "production" else "/docs",
+    redoc_url=None if settings.app_environment == "production" else "/redoc",
 )
 app.add_middleware(
     AnalysisRateLimitMiddleware,
     limit=settings.rate_limit_requests,
+    global_limit=settings.rate_limit_global_requests,
     window_seconds=settings.rate_limit_window_seconds,
+    max_concurrent_requests=settings.max_concurrent_analysis_requests,
     trust_proxy_headers=settings.trust_proxy_headers,
 )
 app.add_middleware(
@@ -98,6 +104,10 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
+)
+app.add_middleware(
+    RequestBodyLimitMiddleware,
+    max_body_size=settings.max_request_body_bytes,
 )
 
 

@@ -20,7 +20,10 @@ APP_HOST=0.0.0.0
 LOCAL_MODEL_CACHE_DIR=/models
 PRELOAD_MODEL=true
 RATE_LIMIT_REQUESTS=60
+RATE_LIMIT_GLOBAL_REQUESTS=240
 RATE_LIMIT_WINDOW_SECONDS=60
+MAX_CONCURRENT_ANALYSIS_REQUESTS=24
+MAX_REQUEST_BODY_BYTES=512000
 FETCH_TIMEOUT_SECONDS=8
 FETCH_MAX_RETRIES=0
 FETCH_CONCURRENCY=6
@@ -36,6 +39,11 @@ other hosts unless they document that their proxy replaces client-supplied
 forwarding headers. The built-in rate limiter is per running container;
 configure an additional platform-level quota before scaling to multiple
 instances.
+
+The application also enforces a per-instance global request budget, rejects
+work beyond the configured concurrency cap, and limits complete request bodies
+before FastAPI parses JSON. Keep these limits enabled even when the hosting
+platform supplies its own WAF or usage controls.
 
 `INFERENCE_BATCH_SIZE=14` is the safe default for the 1 GB Railway trial
 container. It does not reduce the six checked sites or the seven samples kept

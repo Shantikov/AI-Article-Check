@@ -219,6 +219,17 @@ def test_public_privacy_page_is_available() -> None:
     assert "[contact email]" not in response.text
 
 
+def test_oversized_request_body_is_rejected_before_json_validation() -> None:
+    with TestClient(main.app) as client:
+        response = client.post(
+            "/api/v1/analyze/text",
+            content=b"x" * (main.settings.max_request_body_bytes + 1),
+            headers={"Content-Type": "application/json"},
+        )
+
+    assert response.status_code == 413
+
+
 def test_cors_allows_extension_origin_but_not_arbitrary_websites() -> None:
     with TestClient(main.app) as client:
         allowed = client.options(

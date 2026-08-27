@@ -23,6 +23,7 @@ def test_production_release_contains_runtime_but_not_evaluation_tools(tmp_path) 
 
     assert "backend/calibration.json" in names
     assert "backend/app/main.py" in names
+    assert "backend/requirements.lock" in names
     assert "extension/manifest.json" in names
     assert "setup.cmd" in names
     assert "start.cmd" in names
@@ -46,6 +47,7 @@ def test_backend_deployment_release_contains_runtime_and_public_docs() -> None:
     assert "backend/Dockerfile" in names
     assert "backend/app/run.py" in names
     assert "backend/calibration.json" in names
+    assert "backend/requirements.lock" in names
     assert "DEPLOYMENT.md" in names
     assert "PRIVACY.md" in names
     assert "extension/manifest.json" not in names

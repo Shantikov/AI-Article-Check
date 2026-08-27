@@ -12,7 +12,7 @@ def test_product_name_is_consistent_in_extension_ui() -> None:
     html = (ROOT / "extension" / "popup.html").read_text(encoding="utf-8")
 
     assert manifest["name"] == "AI Article Check"
-    assert manifest["version"] == "0.9.6"
+    assert manifest["version"] == "0.9.7"
     assert manifest["icons"] == {
         "16": "icons/icon16.png",
         "32": "icons/icon32.png",

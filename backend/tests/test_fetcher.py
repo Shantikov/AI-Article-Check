@@ -53,6 +53,23 @@ async def test_rejects_localhost() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://100.64.0.1/private",
+        "http://100.127.255.254/private",
+        "http://[fc00::1]/private",
+        "http://[2001:db8::1]/private",
+    ],
+)
+async def test_rejects_every_non_global_literal_address(url: str) -> None:
+    with pytest.raises(FetchError) as error:
+        await validate_public_url(url)
+
+    assert error.value.code == "private_address"
+
+
+@pytest.mark.asyncio
 async def test_large_response_is_truncated_instead_of_rejected() -> None:
     response = httpx.Response(
         200,

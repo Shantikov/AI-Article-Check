@@ -1,6 +1,6 @@
-# Chrome Web Store submission — AI Article Check 0.9.6
+# Chrome Web Store submission — AI Article Check 0.9.7
 
-Use `AI-Article-Check-0.9.6-store.zip` for the store draft. Do not upload the
+Use `AI-Article-Check-0.9.7-store.zip` for the store draft. Do not upload the
 source, development, backend, or GitHub-update archives.
 
 ## Store listing

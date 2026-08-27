@@ -9,7 +9,7 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 DIST = ROOT / "dist"
-FIXED_ZIP_DATE = (2026, 8, 26, 0, 0, 0)
+FIXED_ZIP_DATE = (2026, 8, 27, 0, 0, 0)
 
 ROOT_FILES = {
     "CWS_SUBMISSION.md",
@@ -37,6 +37,7 @@ BACKEND_RUNTIME_FILES = {
     "backend/.env.example",
     "backend/Dockerfile",
     "backend/calibration.json",
+    "backend/requirements.lock",
     "backend/requirements.txt",
 }
 DEVELOPMENT_FILES = {

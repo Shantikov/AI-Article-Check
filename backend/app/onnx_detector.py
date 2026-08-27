@@ -337,7 +337,10 @@ class LocalOnnxDetector:
                 from huggingface_hub import hf_hub_download
                 from transformers import AutoTokenizer
 
-                model_path = hf_hub_download(
+                # Security: load() rejects empty revisions and the production
+                # default is an immutable 40-character commit hash. Bandit
+                # cannot prove that a validated instance attribute is pinned.
+                model_path = hf_hub_download(  # nosec B615
                     repo_id=self.repo_id,
                     filename=self.filename,
                     cache_dir=self.cache_dir,

@@ -20,7 +20,10 @@ class Settings(BaseSettings):
     allowed_extension_ids: str = ""
     allowed_web_origins: str = ""
     rate_limit_requests: int = 60
+    rate_limit_global_requests: int = 240
     rate_limit_window_seconds: int = 60
+    max_concurrent_analysis_requests: int = 24
+    max_request_body_bytes: int = 512_000
     trust_proxy_headers: bool = False
     preload_model: bool = False
     cache_ttl_seconds: int = 43_200
@@ -39,11 +42,23 @@ class Settings(BaseSettings):
     external_detector_url: str | None = None
     external_detector_api_key: str | None = None
 
-    @field_validator("rate_limit_requests", "rate_limit_window_seconds")
+    @field_validator(
+        "rate_limit_requests",
+        "rate_limit_global_requests",
+        "rate_limit_window_seconds",
+        "max_concurrent_analysis_requests",
+    )
     @classmethod
     def validate_non_negative_integer(cls, value: int) -> int:
         if value < 0:
-            raise ValueError("Rate-limit settings must not be negative")
+            raise ValueError("Public API limit settings must not be negative")
+        return value
+
+    @field_validator("max_request_body_bytes")
+    @classmethod
+    def validate_request_body_limit(cls, value: int) -> int:
+        if value < 65_536:
+            raise ValueError("MAX_REQUEST_BODY_BYTES must be at least 65536")
         return value
 
     @field_validator("fetch_max_retries")

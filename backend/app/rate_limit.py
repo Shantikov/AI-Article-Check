@@ -61,18 +61,51 @@ class SlidingWindowLimiter:
         return True, 0
 
 
+class ConcurrentRequestGate:
+    """Reject excess work instead of allowing an unbounded request queue."""
+
+    def __init__(self, limit: int) -> None:
+        self.limit = max(0, limit)
+        self._active = 0
+        self._lock = asyncio.Lock()
+
+    async def enter(self) -> bool:
+        if self.limit == 0:
+            return True
+        async with self._lock:
+            if self._active >= self.limit:
+                return False
+            self._active += 1
+            return True
+
+    async def leave(self) -> None:
+        if self.limit == 0:
+            return
+        async with self._lock:
+            self._active = max(0, self._active - 1)
+
+
 class AnalysisRateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(
         self,
         app,
         *,
         limit: int,
+        global_limit: int = 0,
         window_seconds: int,
+        max_concurrent_requests: int = 0,
         trust_proxy_headers: bool = False,
     ) -> None:
         super().__init__(app)
         self.limiter = SlidingWindowLimiter(limit, window_seconds)
+        self.global_limiter = SlidingWindowLimiter(
+            global_limit,
+            window_seconds,
+            max_client_keys=1,
+        )
+        self.concurrent_gate = ConcurrentRequestGate(max_concurrent_requests)
         self.limit = limit
+        self.global_limit = global_limit
         self.trust_proxy_headers = trust_proxy_headers
 
     def client_key(self, request: Request) -> str:
@@ -96,7 +129,10 @@ class AnalysisRateLimitMiddleware(BaseHTTPMiddleware):
         except (json.JSONDecodeError, TypeError, UnicodeDecodeError):
             return 1
         urls = payload.get("urls") if isinstance(payload, dict) else None
-        return min(10, max(1, len(urls))) if isinstance(urls, list) else 1
+        if not isinstance(urls, list):
+            return 1
+        multiplier = 2 if payload.get("force") is True else 1
+        return min(20, max(1, len(urls)) * multiplier)
 
     async def dispatch(
         self,
@@ -124,7 +160,35 @@ class AnalysisRateLimitMiddleware(BaseHTTPMiddleware):
                 headers={"Retry-After": str(retry_after)},
             )
 
-        response = await call_next(request)
+        globally_allowed, global_retry_after = await self.global_limiter.allow(
+            "all-clients",
+            cost=cost,
+        )
+        if not globally_allowed:
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "detail": "The analysis service is busy. Try again shortly."
+                },
+                headers={"Retry-After": str(global_retry_after)},
+            )
+
+        entered = await self.concurrent_gate.enter()
+        if not entered:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "detail": "The analysis service is at capacity. Try again shortly."
+                },
+                headers={"Retry-After": "2"},
+            )
+
+        try:
+            response = await call_next(request)
+        finally:
+            await self.concurrent_gate.leave()
         if self.limit:
             response.headers["X-RateLimit-Limit"] = str(self.limit)
+        if self.global_limit:
+            response.headers["X-RateLimit-Global-Limit"] = str(self.global_limit)
         return response

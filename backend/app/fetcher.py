@@ -102,16 +102,10 @@ def canonicalize_url(raw_url: str) -> str:
 
 def _is_forbidden_ip(value: str) -> bool:
     ip = ipaddress.ip_address(value)
-    return any(
-        (
-            ip.is_private,
-            ip.is_loopback,
-            ip.is_link_local,
-            ip.is_multicast,
-            ip.is_reserved,
-            ip.is_unspecified,
-        )
-    )
+    # `is_private` does not cover every non-public range. In particular, RFC
+    # 6598 shared address space (100.64.0.0/10) is neither private nor globally
+    # reachable. A public URL fetcher must accept only globally routable IPs.
+    return not ip.is_global
 
 
 async def resolve_public_url(raw_url: str) -> ResolvedPublicUrl:
@@ -230,7 +224,7 @@ async def _fetch_once(
     current_url = initial_url
     headers = {
         "User-Agent": (
-            "Mozilla/5.0 (compatible; AIArticleCheck/0.9.6; "
+            "Mozilla/5.0 (compatible; AIArticleCheck/0.9.7; "
             "+https://localhost.invalid)"
         ),
         "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.1",

@@ -65,7 +65,8 @@ def main() -> None:
     rows_by_domain: dict[str, list[dict]] = {}
     for domain in DEFAULT_DOMAINS:
         print(f"Downloading HC3 domain: {domain}", flush=True)
-        source_path = hf_hub_download(
+        # SOURCE_REVISION is an immutable 40-character commit hash.
+        source_path = hf_hub_download(  # nosec B615
             repo_id=SOURCE_REPO,
             repo_type="dataset",
             revision=SOURCE_REVISION,

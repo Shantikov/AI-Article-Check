@@ -83,7 +83,7 @@ require downloading benchmark datasets or scoring 1,600 validation texts.
    approximately 126 MB ONNX model.
 2. Double-click `start.cmd` whenever you want to use the extension. Keep the
    window open while Chrome is running checks.
-3. Verify <http://127.0.0.1:8787/health>. It must report version `0.9.6` and
+3. Verify <http://127.0.0.1:8787/health>. It must report version `0.9.7` and
    `"calibrated": true`.
 
 The PowerShell scripts behind those launchers also detect a missing environment,

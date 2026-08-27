@@ -52,7 +52,8 @@ def write_json(path: Path, payload: object) -> None:
 def main() -> None:
     args = parse_args()
     print("Downloading MAGE validation split (about 72 MB)", flush=True)
-    source_path = hf_hub_download(
+    # SOURCE_REVISION is an immutable 40-character commit hash.
+    source_path = hf_hub_download(  # nosec B615
         repo_id=SOURCE_REPO,
         repo_type="dataset",
         revision=SOURCE_REVISION,
